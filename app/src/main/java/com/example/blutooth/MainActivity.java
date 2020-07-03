@@ -31,7 +31,7 @@ import static java.lang.Thread.sleep;
 public class MainActivity extends AppCompatActivity {
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static final String DEVICE_NAME ="ESP32_LED_Control";
-    private static final String STATUS = "Status: ",LEFT ="22",RIGHT="23",DISPENSE ="24",DISPENSE_DONE="Finished Dispensing";
+    private static final String STATUS = "Status: ",LEFT ="22",RIGHT="23",DISPENSE ="24",DISPENSE_DONE="Finished Dispensing",SAVE="25",LOAD="26",DELIMITER="*",DEFAULT_BUTTON_NAME="Rename";
     private static  BluetoothDevice btDevice;
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int green = Color.parseColor("#00ff00");
@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int DefaultColors = -20000;
 
 
-
+    boolean loading = false, connected=false;
     Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn;
     Button selectedBtn= null;
     BluetoothAdapter bluetoothAdapter;
@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
     Set<BluetoothDevice> deviceSet;
     TextView recievedView,statusView;
     EditText writeMsg;
-    String msgSend;
+    String msgSend,sendingString;
     String[] buttonNames = new String[4];
 
     SendRecive sendRecive;
@@ -114,6 +114,15 @@ public class MainActivity extends AppCompatActivity {
 //        }
         initBluetooth();
         DiscoverBT();
+//        while(true){
+//            if(connected==true){
+//                loadNames();
+//                break;
+//            }
+//        }
+
+//        while(loading){
+//        }
         ClickListeners();
         // Register for broadcasts when a device is discovered.
         
@@ -149,12 +158,29 @@ public class MainActivity extends AppCompatActivity {
                     byte[] readBuff = (byte[]) msg.obj;
                     String tmpMsg = new String(readBuff,0,msg.arg1);
                     recievedView.setText(tmpMsg);
+//                    This is only done when there is confirmation that the spice has been dispensed
                     if(tmpMsg.equals(DISPENSE_DONE)){
-
-                        Toast.makeText(getApplicationContext(),++numDispensed +" Tbsp(s) dispensed",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(),++numDispensed +" Tsp(s) dispensed",Toast.LENGTH_SHORT).show();
                     }
-                    statusView.setText("Message Received");
-                    statusView.setTextColor(green);
+                    if(loading && !tmpMsg.equals(DELIMITER)){
+                        buttonNames = tmpMsg.split(DELIMITER);
+                        loading = false;
+                    }
+                    else if(loading && tmpMsg.equals(DELIMITER)){
+                        String string ="";
+                        for(int i=0;i<buttonNames.length;i++){
+                            buttonNames[i] = DEFAULT_BUTTON_NAME;
+                        }
+                        loading=false;
+                        saveNames();
+                    }
+                    if(tmpMsg.equals("Ready")){
+                        sendRecive.write(sendingString.getBytes());
+                    }
+                    if(!loading){
+                        statusView.setText("Message Received");
+                        statusView.setTextColor(green);
+                    }
                     break;
             }
             return true;
@@ -179,6 +205,8 @@ public class MainActivity extends AppCompatActivity {
                 Message message = Message.obtain();
                 message.what = STATE_CONNECTED;
                 handler.sendMessage(message);
+
+                connected=true;
 
                 sendRecive = new SendRecive(socket);
                 sendRecive.start();
@@ -226,7 +254,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         public void write(byte[] bytes){
-            // If dispensing wait for a response
             toListenState();
             try {
                 outputStream.write(bytes);
@@ -243,8 +270,9 @@ public class MainActivity extends AppCompatActivity {
 //                else if (BluetoothAdapter.ACTION_ACL_DISCONNECTED.equals(action)) {
 //                    //Device has disconnected
 //                }
-                String string = String.valueOf(writeMsg.getText());
-                sendRecive.write(string.getBytes());
+//                String string = String.valueOf(writeMsg.getText());
+//                sendRecive.write(string.getBytes());
+                loadNames();
             }
         });
         spiceDispense.setOnClickListener(new View.OnClickListener() {
@@ -358,20 +386,25 @@ public class MainActivity extends AppCompatActivity {
         }
         if(currBtn == spiceDispense.getId()){
             spiceDispense.setText(string);
+            buttonNames[0]=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice0.getId()){
             spice0.setText(string);
+            buttonNames[1]=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice1.getId()){
             spice1.setText(string);
+            buttonNames[2]=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice2.getId()){
             spice2.setText(string);
+            buttonNames[3]=string;
             writeMsg.getText().clear();
         }
+        saveNames();
     }
     private void changeColors(int currBut){
         if(currBut == spiceDispense.getId()){
@@ -439,7 +472,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
     private void initBluetooth(){
 
         if (bluetoothAdapter == null) {
@@ -454,6 +486,25 @@ public class MainActivity extends AppCompatActivity {
 
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
 //        registerReceiver(receiver, filter);
+    }
+    private void loadNames(){
+        loading=true;
+        sendRecive.write(LOAD.getBytes());
+        //waiting till data is received
+    }
+    private void saveNames(){
+        String string = "";
+        for(int i=0;i<buttonNames.length;i++){
+            if(i!=buttonNames.length-1) {
+                string += buttonNames[i];
+                string += DELIMITER;
+            }
+            else{
+                string += buttonNames[i];
+            }
+        }
+        sendingString= string;
+        sendRecive.write(SAVE.getBytes());
     }
     @Override
     protected void onDestroy() {
