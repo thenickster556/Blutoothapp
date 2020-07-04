@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.content.IntentFilter;
 import android.graphics.Color;
 import android.os.Build;
@@ -20,9 +21,17 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.Set;
 import java.util.UUID;
 
@@ -30,8 +39,8 @@ import static java.lang.Thread.sleep;
 
 public class MainActivity extends AppCompatActivity {
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    private static final String DEVICE_NAME ="ESP32_LED_Control";
-    private static final String STATUS = "Status: ",LEFT ="22",RIGHT="23",DISPENSE ="24",DISPENSE_DONE="Finished Dispensing";
+    private static final String DEVICE_NAME ="ESP32_LED_Control",FILE_NAME="DispensedSpices.txt";
+    private static final String STATUS = "Status: ",LEFT ="22",RIGHT="23",DISPENSE ="24",DISPENSE_DONE="Finished Dispensing",DELIMITER="*";
     private static  BluetoothDevice btDevice;
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int green = Color.parseColor("#00ff00");
@@ -114,6 +123,7 @@ public class MainActivity extends AppCompatActivity {
 //        }
         initBluetooth();
         DiscoverBT();
+        LoadNames();
         ClickListeners();
         // Register for broadcasts when a device is discovered.
         
@@ -308,7 +318,70 @@ public class MainActivity extends AppCompatActivity {
         });
         changeColors(DefaultColors);
     }
+    private void showToast(String whatToPrint){
+        Toast.makeText(getApplicationContext(),whatToPrint,Toast.LENGTH_SHORT).show();
+    }
+    private void saveToPhone(){
+        String Data=createSaveString(); //define data
+        File file = new File(MainActivity.this.getFilesDir()+FILE_NAME);
+        if (!file.exists()) {
+            file.mkdir();
+        }
+        try {
+            File gpxfile = new File(MainActivity.this.getFilesDir()+FILE_NAME);
+            FileWriter writer = new FileWriter(gpxfile);
+            writer.append(Data);
+            writer.flush();
+            writer.close();
+        } catch (Exception e) { }
+        showToast("Saved");
 
+
+    }
+    private String createSaveString(){
+        String send= "";
+//        The last one dont put the delimiter
+        for(int i = 0;i<buttonNames.length;i++){
+            if(i==(buttonNames.length-1))
+                send += buttonNames[i];
+            else
+                send = send + buttonNames[i]+DELIMITER;
+        }
+        return send;
+    }
+    private void LoadNames(){
+        File file = new File(FILE_NAME);
+        if(file.exists()){
+            try {
+            FileInputStream fileInputStream = openFileInput(FILE_NAME);
+            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
+            BufferedReader bufferedReader =new BufferedReader(inputStreamReader);
+            String text = "";
+            while(bufferedReader.readLine()!=null){
+                text+=bufferedReader.readLine();
+            }
+            createButtonNames(text);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        else{
+            String string = "Rename Spice";
+            for(int i=0;i<buttonNames.length;i++){
+                buttonNames[i]= string;
+            }
+            saveToPhone();
+        }
+        showToast("Correctly Loaded");
+    }
+    private void createButtonNames(String names){
+        buttonNames=names.split(DELIMITER);
+//        for(int i = 0;i<buttonNames.length;i++){
+//
+//        }
+
+    }
     private void toListenState(){
         Message msg = Message.obtain();
         msg.what = STATE_LISTENING;
@@ -358,20 +431,25 @@ public class MainActivity extends AppCompatActivity {
         }
         if(currBtn == spiceDispense.getId()){
             spiceDispense.setText(string);
+            buttonNames[0]=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice0.getId()){
             spice0.setText(string);
+            buttonNames[1]=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice1.getId()){
             spice1.setText(string);
+            buttonNames[2]=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice2.getId()){
             spice2.setText(string);
+            buttonNames[3]=string;
             writeMsg.getText().clear();
         }
+        saveToPhone();
     }
     private void changeColors(int currBut){
         if(currBut == spiceDispense.getId()){
