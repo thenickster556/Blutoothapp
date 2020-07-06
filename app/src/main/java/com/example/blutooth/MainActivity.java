@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
     Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn;
     Button selectedBtn= null;
     BluetoothAdapter bluetoothAdapter;
-    int requestCodeForEnable,numDispensed=0;
+    int requestCodeForEnable,numDispensed=0,counter=0;
     Intent enableBtIntent;
     IntentFilter intentFilter,disconnectFilter;
     Set<BluetoothDevice> deviceSet;
@@ -170,6 +170,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                     else if(tmpMsg.equals(MOVE_RIGHT)){
                         rightRotate();
+                        if(counter>0){//to move right twice
+                            sendRecive.write(RIGHT.getBytes());
+                            counter--;
+                        }
                     }
                     else if(tmpMsg.equals(MOVE_RIGHT2)){
                         rightRotate();
@@ -456,7 +460,7 @@ public class MainActivity extends AppCompatActivity {
         }
         else if(btn == spice1.getId()){
             sendRecive.write(RIGHT.getBytes());
-            sendRecive.write(RIGHT.getBytes());
+            counter=1;
         }
         else if(btn == spice2.getId()){
             sendRecive.write(RIGHT.getBytes());
