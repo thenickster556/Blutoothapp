@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -59,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
     Set<BluetoothDevice> deviceSet;
     TextView recievedView,statusView;
     EditText writeMsg;
-    String msgSend;
+    String msgSend,Path;
     String[] buttonNames = new String[4];
 
     SendRecive sendRecive;
@@ -76,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Path = (getApplicationContext().getFilesDir().getAbsolutePath()+"/"+FILE_NAME);
         send = (Button) findViewById(R.id.sendBtn);
         spiceDispense = (Button) findViewById(R.id.dispenseSpice);
         spice0 = (Button) findViewById(R.id.spice0);
@@ -323,12 +325,12 @@ public class MainActivity extends AppCompatActivity {
     }
     private void saveToPhone(){
         String Data=createSaveString(); //define data
-        File file = new File(MainActivity.this.getFilesDir()+FILE_NAME);
+        File file = new File(Path);
         if (!file.exists()) {
             file.mkdir();
         }
         try {
-            File gpxfile = new File(MainActivity.this.getFilesDir()+FILE_NAME);
+            File gpxfile = new File(Path);
             FileWriter writer = new FileWriter(gpxfile);
             writer.append(Data);
             writer.flush();
@@ -350,21 +352,21 @@ public class MainActivity extends AppCompatActivity {
         return send;
     }
     private void LoadNames(){
-        File file = new File(FILE_NAME);
-        if(file.exists()){
-            try {
-            FileInputStream fileInputStream = openFileInput(FILE_NAME);
-            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
-            BufferedReader bufferedReader =new BufferedReader(inputStreamReader);
-            String text = "";
-            while(bufferedReader.readLine()!=null){
-                text+=bufferedReader.readLine();
-            }
-            createButtonNames(text);
 
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        File file = new File(Path);
+        if(file.exists()){
+            StringBuilder text = new StringBuilder();
+            try {
+                BufferedReader br = new BufferedReader(new FileReader(file));
+                String line;
+                while ((line = br.readLine())!= null) {
+                    text.append(line);
+//                    text.append('\n');
+                }
+                br.close();
+            } catch (IOException e) { }
+            seperateNames(text.toString());
+            addLabelToButtons();
         }
         else{
             String string = "Rename Spice";
@@ -375,12 +377,42 @@ public class MainActivity extends AppCompatActivity {
         }
         showToast("Correctly Loaded");
     }
-    private void createButtonNames(String names){
-        buttonNames=names.split(DELIMITER);
-//        for(int i = 0;i<buttonNames.length;i++){
-//
-//        }
+    private void addLabelToButtons(){
+        for(int i = 0;i<buttonNames.length;i++){
+            switch(i){
+                case 0:
+                    spiceDispense.setText(buttonNames[i]);
+                    break;
+                case 1:
+                    spice0.setText(buttonNames[i]);
+                    break;
+                case 2:
+                    spice1.setText(buttonNames[i]);
+                    break;
+                case 3:
+                    spice2.setText(buttonNames[i]);
+                    break;
+            }
+        }
 
+    }
+    private void seperateNames(String names){
+        int idx=0,from=0;
+        for(int i=0;i<names.length();i++){
+            if(names.charAt(i)==DELIMITER.charAt(0)&&idx==0){
+                buttonNames[idx]=names.substring(from,i);
+                idx++;
+                from = i;
+            }
+            else if(names.charAt(i)==DELIMITER.charAt(0)&&(idx==1||idx==2)){
+                buttonNames[idx]=names.substring(from+1,i);
+                idx++;
+                from = i;
+            }
+            if(idx==3){
+                buttonNames[idx]=names.substring(from+1);
+            }
+        }
     }
     private void toListenState(){
         Message msg = Message.obtain();
