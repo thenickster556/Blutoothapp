@@ -41,7 +41,7 @@ import static java.lang.Thread.sleep;
 public class MainActivity extends AppCompatActivity {
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static final String DEVICE_NAME ="ESP32_LED_Control",FILE_NAME="DispensedSpices.txt";
-    private static final String STATUS = "Status: ",LEFT ="22",RIGHT="23",DISPENSE ="24",DISPENSE_DONE="Finished Dispensing",DELIMITER="*";
+    private static final String STATUS = "Status: ",LEFT ="22",RIGHT="23",DISPENSE ="24",DISPENSE_DONE="Finished Dispensing",MOVE_LEFT="Moving Left",MOVE_RIGHT="Moving Right",MOVE_RIGHT2="Moving Right*2",DELIMITER="*";
     private static  BluetoothDevice btDevice;
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int green = Color.parseColor("#00ff00");
@@ -164,6 +164,16 @@ public class MainActivity extends AppCompatActivity {
                     if(tmpMsg.equals(DISPENSE_DONE)){
 
                         Toast.makeText(getApplicationContext(),++numDispensed +" Tbsp(s) dispensed",Toast.LENGTH_SHORT).show();
+                    }
+                    else if(tmpMsg.equals(MOVE_LEFT)){
+                        leftRotate();
+                    }
+                    else if(tmpMsg.equals(MOVE_RIGHT)){
+                        rightRotate();
+                    }
+                    else if(tmpMsg.equals(MOVE_RIGHT2)){
+                        rightRotate();
+                        rightRotate();
                     }
                     statusView.setText("Message Received");
                     statusView.setTextColor(green);
@@ -441,10 +451,8 @@ public class MainActivity extends AppCompatActivity {
     private void gotTo(int btn) {
         String tmp=null;
         if(btn == spice0.getId()){
-            sendRecive.write(LEFT.getBytes());
-//            tmp=buttonNames[1];
-//            buttonNames[1]= buttonNames[0];
-//            buttonNames[0] = tmp;
+            leftRotate();
+//            sendRecive.write(LEFT.getBytes());
         }
         else if(btn == spice1.getId()){
             sendRecive.write(RIGHT.getBytes());
@@ -453,6 +461,32 @@ public class MainActivity extends AppCompatActivity {
         else if(btn == spice2.getId()){
             sendRecive.write(RIGHT.getBytes());
         }
+    }
+    private void rightRotate(){
+        String tmp = new String();
+        for(int i=0; i<buttonNames.length;i++){
+            tmp=buttonNames[(i+1)%4];
+            buttonNames[(i+1)%4]=buttonNames[0];
+            buttonNames[0]=tmp;
+        }
+        saveToPhone();
+        addLabelToButtons();
+    }
+    private void leftRotate(){
+        String tmp = new String();
+        for(int i=buttonNames.length-1; i>0;i--){
+            if(i == 0) {
+                tmp=buttonNames[0];
+                buttonNames[0]=buttonNames[3];
+            }
+            else{
+                tmp=buttonNames[(i-1)];
+                buttonNames[(i-1)]=buttonNames[3];
+            }
+            buttonNames[3]=tmp;
+        }
+        saveToPhone();
+        addLabelToButtons();
     }
 
     private void renameBtn(int currBtn){
