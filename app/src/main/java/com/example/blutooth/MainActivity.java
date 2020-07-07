@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.graphics.Color;
@@ -51,10 +52,10 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn;
+    Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn,reconnectBtn;
     Button selectedBtn= null;
     BluetoothAdapter bluetoothAdapter;
-    int requestCodeForEnable,numDispensed=0;
+    int requestCodeForEnable,numDispensed=0,counter=0;
     Intent enableBtIntent;
     IntentFilter intentFilter,disconnectFilter;
     Set<BluetoothDevice> deviceSet;
@@ -85,6 +86,8 @@ public class MainActivity extends AppCompatActivity {
         spice2 = (Button) findViewById(R.id.spice2);
         dispenseBtn = (Button) findViewById(R.id.dispenseBtn);
         dispenseBtn.setVisibility(View.GONE);
+        reconnectBtn = (Button) findViewById(R.id.reconnectBtn);
+        reconnectBtn.setVisibility(View.GONE);
         gotoBtn = (Button) findViewById(R.id.goToBtn);
         gotoBtn.setVisibility(View.GONE);
         renameBtn= (Button) findViewById(R.id.renameBtn);
@@ -100,29 +103,13 @@ public class MainActivity extends AppCompatActivity {
         enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 
         requestCodeForEnable = 1;
-//        BroadcastReceiver receiver;
-//        this.registerReceiver(receiver,disconnectFilter);
-//        @Override
-//        public void onReceive(Context context, Intent intent) {
-//            String action = intent.getAction();
-//            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-//
-//            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-//                //Device found
-//            }
-//            else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-//                //Device is now connected
-//            }
-//            else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
-//                //Done searching
-//            }
-//            else if (BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(action)) {
-//                //Device is about to disconnect
-//            }
-//            else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
-//                //Device has disconnected
-//            }
-//        }
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        this.registerReceiver(mReceiver, filter);
+
         initBluetooth();
         DiscoverBT();
         LoadNames();
@@ -131,6 +118,35 @@ public class MainActivity extends AppCompatActivity {
         
 
     }
+
+    //The BroadcastReceiver that listens for bluetooth broadcasts
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+
+            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+//           ... //Device found
+            }
+            else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+//           ... //Device is now connected
+            }
+            else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+//           ... //Done searching
+            }
+            else if (BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(action)) {
+//           ... //Device is about to disconnect
+            }
+            else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+                buttonVisibility(reconnectBtn.getId());
+                changeColors(DefaultColors);
+                Message message = Message.obtain();
+                message.what = STATE_CONNECTION_FAILED;
+                handler.sendMessage(message);
+            }
+        }
+    };
 
         Handler handler = new Handler(new Handler.Callback() {
         @RequiresApi(api = Build.VERSION_CODES.O)
@@ -152,6 +168,7 @@ public class MainActivity extends AppCompatActivity {
                 case STATE_CONNECTED:
                     statusView.setText(STATUS + "Connected");
                     statusView.setTextColor(green);
+                    buttonVisibility(STATE_LISTENING);
                     break;
                 case STATE_CONNECTION_FAILED:
                     statusView.setText(STATUS + "Connection failed");
@@ -170,6 +187,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                     else if(tmpMsg.equals(MOVE_RIGHT)){
                         rightRotate();
+                        if(counter>0){//to move right twice
+                            sendRecive.write(RIGHT.getBytes());
+                            counter--;
+                        }
                     }
                     else if(tmpMsg.equals(MOVE_RIGHT2)){
                         rightRotate();
@@ -328,6 +349,13 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+        reconnectBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                initBluetooth();
+                DiscoverBT();
+            }
+        });
         changeColors(DefaultColors);
     }
     private void showToast(String whatToPrint){
@@ -439,6 +467,14 @@ public class MainActivity extends AppCompatActivity {
             dispenseBtn.setVisibility(View.GONE);
             renameBtn.setVisibility(View.GONE);
             gotoBtn.setVisibility(View.GONE);
+            reconnectBtn.setVisibility(View.GONE);
+
+        }
+        else if(btn == reconnectBtn.getId()){
+            dispenseBtn.setVisibility(View.GONE);
+            renameBtn.setVisibility(View.GONE);
+            gotoBtn.setVisibility(View.GONE);
+            reconnectBtn.setVisibility(View.VISIBLE);
         }
         else{
 
@@ -451,12 +487,11 @@ public class MainActivity extends AppCompatActivity {
     private void gotTo(int btn) {
         String tmp=null;
         if(btn == spice0.getId()){
-            leftRotate();
-//            sendRecive.write(LEFT.getBytes());
+            sendRecive.write(LEFT.getBytes());
         }
         else if(btn == spice1.getId()){
             sendRecive.write(RIGHT.getBytes());
-            sendRecive.write(RIGHT.getBytes());
+            counter=1;
         }
         else if(btn == spice2.getId()){
             sendRecive.write(RIGHT.getBytes());
