@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
 
     Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn,reconnectBtn;
     Button selectedBtn= null;
+    boolean busy= false;
     BluetoothAdapter bluetoothAdapter;
     int requestCodeForEnable,numDispensed=0,counter=0;
     Intent enableBtIntent;
@@ -144,6 +145,7 @@ public class MainActivity extends AppCompatActivity {
                 Message message = Message.obtain();
                 message.what = STATE_CONNECTION_FAILED;
                 handler.sendMessage(message);
+                busy = true;
             }
         }
     };
@@ -160,19 +162,23 @@ public class MainActivity extends AppCompatActivity {
                     recievedView.setText("Please Wait");
                     buttonVisibility(STATE_LISTENING);
                     changeColors(STATE_LISTENING);
+                    busy=true;
                     break;
                 case STATE_CONNECTEING:
                     statusView.setText(STATUS + "Connecting");
                     statusView.setTextColor(blue);
+                    busy = true;
                     break;
                 case STATE_CONNECTED:
                     statusView.setText(STATUS + "Connected");
                     statusView.setTextColor(green);
                     buttonVisibility(STATE_LISTENING);
+                    busy = false;
                     break;
                 case STATE_CONNECTION_FAILED:
                     statusView.setText(STATUS + "Connection failed");
                     statusView.setTextColor(red);
+                    busy = true;
                     break;
                 case STATE_MESSAGE_RECEIVED:
                     byte[] readBuff = (byte[]) msg.obj;
@@ -198,6 +204,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     statusView.setText("Message Received");
                     statusView.setTextColor(green);
+                    busy=false;
                     break;
             }
             return true;
@@ -283,52 +290,69 @@ public class MainActivity extends AppCompatActivity {
         send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//                else if (BluetoothAdapter.ACTION_ACL_DISCONNECTED.equals(action)) {
-//                    //Device has disconnected
-//                }
+               if(busy){
+                   showToast("Please wait for process to complete");
+               }else{
                 String string = String.valueOf(writeMsg.getText());
                 sendRecive.write(string.getBytes());
+               }
             }
         });
         spiceDispense.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                selectedBtn = spiceDispense;
-                changeColors(selectedBtn.getId());
-                buttonVisibility(selectedBtn.getId());
+                if(busy){
+                    showToast("Please wait for process to complete");
+                }else {
+                    selectedBtn = spiceDispense;
+                    changeColors(selectedBtn.getId());
+                    buttonVisibility(selectedBtn.getId());
+                }
             }
         });
         spice0.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                selectedBtn = spice0;
-                changeColors(selectedBtn.getId());
-                buttonVisibility(selectedBtn.getId());
+                if(busy){
+                    showToast("Please wait for process to complete");
+                }else {
+                    selectedBtn = spice0;
+                    changeColors(selectedBtn.getId());
+                    buttonVisibility(selectedBtn.getId());
+                }
             }
         });
         spice1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                selectedBtn = spice1;
-                changeColors(selectedBtn.getId());
-                buttonVisibility(selectedBtn.getId());
+                if(busy){
+                    showToast("Please wait for process to complete");
+                }else {
+                    selectedBtn = spice1;
+                    changeColors(selectedBtn.getId());
+                    buttonVisibility(selectedBtn.getId());
+                }
             }
         });
         spice2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                selectedBtn = spice2;
-                changeColors(selectedBtn.getId());
-                buttonVisibility(selectedBtn.getId());
+                if(busy){
+                    showToast("Please wait for process to complete");
+                }else {
+                    selectedBtn = spice2;
+                    changeColors(selectedBtn.getId());
+                    buttonVisibility(selectedBtn.getId());
+                }
 
             }
         });
         dispenseBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                selectedBtn =dispenseBtn; //I have no check in some of my functions if this happens, this could be a problem
-                sendRecive.write(DISPENSE.getBytes());
-            }
+                    selectedBtn = dispenseBtn; //I have no check in some of my functions if this happens, this could be a problem
+                    sendRecive.write(DISPENSE.getBytes());
+                }
         });
         gotoBtn.setOnClickListener(new View.OnClickListener() {
             @Override
