@@ -42,7 +42,8 @@ import static java.lang.Thread.sleep;
 public class MainActivity extends AppCompatActivity {
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static final String DEVICE_NAME ="ESP32_LED_Control",FILE_NAME="DispensedSpices.txt";
-    private static final String STATUS = "Status: ",LEFT ="22",RIGHT="23",DISPENSE ="24",DISPENSE_DONE="Finished Dispensing",MOVE_LEFT="Moving Left",MOVE_RIGHT="Moving Right",MOVE_RIGHT2="Moving Right*2",DELIMITER="*";
+    private static final String STATUS = "Status: ",LEFT ="22",RIGHT="23",DISPENSE ="24",DISPENSE_DONE="Finished Dispensing",MOVE_LEFT="Moving Left",MOVE_RIGHT="Moving Right",STOPPED="Stopped",
+            MOVE_RIGHT2="Moving Right*2",DELIMITER="*",STOP="13";
     private static  BluetoothDevice btDevice;
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int green = Color.parseColor("#00ff00");
@@ -52,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn,reconnectBtn;
+    Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn,reconnectBtn,eStopBtn;
     Button selectedBtn= null;
     boolean busy= false;
     BluetoothAdapter bluetoothAdapter;
@@ -85,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
         spice0 = (Button) findViewById(R.id.spice0);
         spice1 = (Button) findViewById(R.id.spice1);
         spice2 = (Button) findViewById(R.id.spice2);
+        eStopBtn = (Button) findViewById(R.id.eStopBtn);
         dispenseBtn = (Button) findViewById(R.id.dispenseBtn);
         dispenseBtn.setVisibility(View.GONE);
         reconnectBtn = (Button) findViewById(R.id.reconnectBtn);
@@ -93,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
         gotoBtn.setVisibility(View.GONE);
         renameBtn= (Button) findViewById(R.id.renameBtn);
         renameBtn.setVisibility(View.GONE);
+
 
         writeMsg = (EditText) findViewById(R.id.editTextMsg);
 
@@ -296,6 +299,12 @@ public class MainActivity extends AppCompatActivity {
                 String string = String.valueOf(writeMsg.getText());
                 sendRecive.write(string.getBytes());
                }
+            }
+        });
+        eStopBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                sendRecive.write(STOP.getBytes());
             }
         });
         spiceDispense.setOnClickListener(new View.OnClickListener() {
