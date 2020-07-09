@@ -143,8 +143,6 @@ public class MainActivity extends AppCompatActivity {
 //           ... //Device is about to disconnect
             }
             else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
-                buttonVisibility(reconnectBtn.getId());
-                changeColors(DefaultColors);
                 Message message = Message.obtain();
                 message.what = STATE_CONNECTION_FAILED;
                 handler.sendMessage(message);
@@ -182,6 +180,8 @@ public class MainActivity extends AppCompatActivity {
                     statusView.setText(STATUS + "Connection failed");
                     statusView.setTextColor(red);
                     busy = true;
+                    buttonVisibility(reconnectBtn.getId());
+                    changeColors(DefaultColors);
                     break;
                 case STATE_MESSAGE_RECEIVED:
                     byte[] readBuff = (byte[]) msg.obj;
