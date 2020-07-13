@@ -37,7 +37,11 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Locale;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.UUID;
 
@@ -727,17 +731,26 @@ public class MainActivity extends AppCompatActivity {
             num *=3;
         }
         words = words.toUpperCase();
+        SpiceNameIdx[] spiceNameIdxes = new SpiceNameIdx[4];
+        PriorityQueue<SpiceNameIdx> priorityQueue = new PriorityQueue<>();
+        for(int i=0; i<buttonNames.length;i++){
+            spiceNameIdxes[i]= new SpiceNameIdx(i,buttonNames[i]);
+            priorityQueue.add(new SpiceNameIdx(i,buttonNames[i]));
+        }
+        for(int i=spiceNameIdxes.length-1;!priorityQueue.isEmpty();i--)
+            spiceNameIdxes[i]=priorityQueue.poll();
+
         for(int i =0; i< buttonNames.length;i++){
-            if(words.contains(buttonNames[i].toUpperCase())){//if the text has a spice dispense it or go to it then dispense it
-                if(i==0){
+            if(words.contains(spiceNameIdxes[i].name.toUpperCase())){//if the text has a spice dispense it or go to it then dispense it
+                if(spiceNameIdxes[i].idx==0){
                     moreToDispense=num-1;
                     sendRecive.write(DISPENSE.getBytes());
                 }
-                else{
+                else if(spiceNameIdxes[i].idx!=0){
                     isAuto= true;
                     moreToDispense=num-1;
-                    autoBuffer = buttonNames[i];
-                    gotTo(buttonOrder[i].getId());
+                    autoBuffer = buttonNames[spiceNameIdxes[i].idx];
+                    gotTo(buttonOrder[spiceNameIdxes[i].idx].getId());
                 }
                 break;
             }
@@ -782,5 +795,19 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
 //        unregisterReceiver(receiver);
+    }
+}
+class SpiceNameIdx implements Comparable<SpiceNameIdx>{
+    String name;
+    int idx;
+    SpiceNameIdx(int idxes, String names){
+        idx = idxes;
+        name = names;
+
+    }
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    @Override
+    public int compareTo(SpiceNameIdx spiceNameIdx) {
+        return Integer.compare(idx,spiceNameIdx.idx);
     }
 }
