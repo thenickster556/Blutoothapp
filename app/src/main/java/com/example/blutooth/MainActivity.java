@@ -305,8 +305,11 @@ public class MainActivity extends AppCompatActivity {
                     String tmpMsg = new String(readBuff,0,msg.arg1);
                     recievedView.setText(tmpMsg);
                     if(tmpMsg.equals(DISPENSE_DONE)){
-
-                        Toast.makeText(getApplicationContext(),++numDispensed +" Tsp(s) dispensed",Toast.LENGTH_SHORT).show();
+                        int tableSpoons = numDispensed/3;
+                        if((numDispensed+1)/3>numDispensed/3){// weird division bug
+                            tableSpoons++;
+                        }
+                        Toast.makeText(getApplicationContext(),"Tbsp(s) "+tableSpoons+" and " + ++numDispensed%3 +" Tsp(s) dispensed",Toast.LENGTH_SHORT).show();
                         if(moreToDispense>0){// if more need to be dispensed do it
                             moreToDispense--;
                             sendRecive.write(DISPENSE.getBytes());
