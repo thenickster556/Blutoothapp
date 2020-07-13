@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
@@ -16,6 +17,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
+import android.speech.RecognizerIntent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -34,6 +36,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
@@ -53,17 +57,18 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn,reconnectBtn,eStopBtn;
+    Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn,reconnectBtn,eStopBtn,speechBtn;
+    Button[] buttonOrder;
     Button selectedBtn= null;
-    boolean busy= false;
+    boolean busy= false,isAuto=false;
     BluetoothAdapter bluetoothAdapter;
-    int requestCodeForEnable,numDispensed=0,counter=0;
+    int requestCodeForEnable,numDispensed=0,counter=0,moreToDispense=0;
     Intent enableBtIntent;
     IntentFilter intentFilter,disconnectFilter;
     Set<BluetoothDevice> deviceSet;
     TextView recievedView,statusView;
     EditText writeMsg;
-    String msgSend,Path;
+    String msgSend,Path,autoBuffer;
     String[] buttonNames = new String[4];
 
     SendRecive sendRecive;
@@ -73,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
     static final int STATE_CONNECTED =3;
     static final int STATE_CONNECTION_FAILED = 4;
     static final int STATE_MESSAGE_RECEIVED =5;
+    static final int REQ_CODE_SPEECH_OUTPUT = 143;
 
 
     @Override
@@ -95,7 +101,9 @@ public class MainActivity extends AppCompatActivity {
         gotoBtn.setVisibility(View.GONE);
         renameBtn= (Button) findViewById(R.id.renameBtn);
         renameBtn.setVisibility(View.GONE);
-
+        speechBtn = (Button) findViewById(R.id.useSpeechBtn);
+        speechBtn.setVisibility(View.GONE);
+        buttonOrder = new Button[]{spiceDispense, spice0, spice1, spice2};
 
         writeMsg = (EditText) findViewById(R.id.editTextMsg);
 
@@ -123,6 +131,115 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void ClickListeners(){
+
+        send.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(busy){
+                    showToast("Please wait for process to complete");
+                }else{
+                    String string = String.valueOf(writeMsg.getText());
+                    sendRecive.write(string.getBytes());
+                }
+            }
+        });
+        eStopBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                sendRecive.write(STOP.getBytes());
+            }
+        });
+        speechBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                turnOnMic();
+            }
+        });
+        spiceDispense.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(busy){
+                    showToast("Please wait for process to complete");
+                }else {
+                    selectedBtn = spiceDispense;
+                    changeColors(selectedBtn.getId());
+                    buttonVisibility(selectedBtn.getId());
+                }
+            }
+        });
+        spice0.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(busy){
+                    showToast("Please wait for process to complete");
+                }else {
+                    selectedBtn = spice0;
+                    changeColors(selectedBtn.getId());
+                    buttonVisibility(selectedBtn.getId());
+                }
+            }
+        });
+        spice1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(busy){
+                    showToast("Please wait for process to complete");
+                }else {
+                    selectedBtn = spice1;
+                    changeColors(selectedBtn.getId());
+                    buttonVisibility(selectedBtn.getId());
+                }
+            }
+        });
+        spice2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(busy){
+                    showToast("Please wait for process to complete");
+                }else {
+                    selectedBtn = spice2;
+                    changeColors(selectedBtn.getId());
+                    buttonVisibility(selectedBtn.getId());
+                }
+
+            }
+        });
+        dispenseBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                selectedBtn = dispenseBtn; //I have no check in some of my functions if this happens, this could be a problem
+                sendRecive.write(DISPENSE.getBytes());
+            }
+        });
+        gotoBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                numDispensed=0;
+                gotTo(selectedBtn.getId());
+            }
+        });
+        renameBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //ensuring a button is selected before calling the function
+                if(selectedBtn != null){
+                    renameBtn(selectedBtn.getId());
+                }
+                else{
+                    Toast.makeText(getApplicationContext(),"Please select a spice first",Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        reconnectBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                initBluetooth();
+                DiscoverBT();
+            }
+        });
+        changeColors(DefaultColors);
+    }
     //The BroadcastReceiver that listens for bluetooth broadcasts
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -189,16 +306,28 @@ public class MainActivity extends AppCompatActivity {
                     recievedView.setText(tmpMsg);
                     if(tmpMsg.equals(DISPENSE_DONE)){
 
-                        Toast.makeText(getApplicationContext(),++numDispensed +" Tbsp(s) dispensed",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(),++numDispensed +" Tsp(s) dispensed",Toast.LENGTH_SHORT).show();
+                        if(moreToDispense>0){// if more need to be dispensed do it
+                            moreToDispense--;
+                            sendRecive.write(DISPENSE.getBytes());
+                        }
                     }
                     else if(tmpMsg.equals(MOVE_LEFT)){
                         leftRotate();
+                        if(isAuto){
+                            sendRecive.write(DISPENSE.getBytes());
+                            isAuto=false;
+                        }
                     }
                     else if(tmpMsg.equals(MOVE_RIGHT)){
                         rightRotate();
                         if(counter>0){//to move right twice
                             sendRecive.write(RIGHT.getBytes());
                             counter--;
+                        }
+                        else if(counter<=0 && isAuto){
+                            sendRecive.write(DISPENSE.getBytes());
+                            isAuto=false;
                         }
                     }
                     else if(tmpMsg.equals(MOVE_RIGHT2)){
@@ -288,111 +417,21 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-    private void ClickListeners(){
 
-        send.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-               if(busy){
-                   showToast("Please wait for process to complete");
-               }else{
-                String string = String.valueOf(writeMsg.getText());
-                sendRecive.write(string.getBytes());
-               }
-            }
-        });
-        eStopBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                sendRecive.write(STOP.getBytes());
-            }
-        });
-        spiceDispense.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(busy){
-                    showToast("Please wait for process to complete");
-                }else {
-                    selectedBtn = spiceDispense;
-                    changeColors(selectedBtn.getId());
-                    buttonVisibility(selectedBtn.getId());
-                }
-            }
-        });
-        spice0.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(busy){
-                    showToast("Please wait for process to complete");
-                }else {
-                    selectedBtn = spice0;
-                    changeColors(selectedBtn.getId());
-                    buttonVisibility(selectedBtn.getId());
-                }
-            }
-        });
-        spice1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(busy){
-                    showToast("Please wait for process to complete");
-                }else {
-                    selectedBtn = spice1;
-                    changeColors(selectedBtn.getId());
-                    buttonVisibility(selectedBtn.getId());
-                }
-            }
-        });
-        spice2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(busy){
-                    showToast("Please wait for process to complete");
-                }else {
-                    selectedBtn = spice2;
-                    changeColors(selectedBtn.getId());
-                    buttonVisibility(selectedBtn.getId());
-                }
-
-            }
-        });
-        dispenseBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                    selectedBtn = dispenseBtn; //I have no check in some of my functions if this happens, this could be a problem
-                    sendRecive.write(DISPENSE.getBytes());
-                }
-        });
-        gotoBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                numDispensed=0;
-                gotTo(selectedBtn.getId());
-            }
-        });
-        renameBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //ensuring a button is selected before calling the function
-                if(selectedBtn != null){
-                    renameBtn(selectedBtn.getId());
-                }
-                else{
-                    Toast.makeText(getApplicationContext(),"Please select a spice first",Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-        reconnectBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                initBluetooth();
-                DiscoverBT();
-            }
-        });
-        changeColors(DefaultColors);
-    }
     private void showToast(String whatToPrint){
         Toast.makeText(getApplicationContext(),whatToPrint,Toast.LENGTH_SHORT).show();
+    }
+    private void turnOnMic(){
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT,"Say spice to dispense and how much(1-9)");
+
+        try{
+            startActivityForResult(intent, REQ_CODE_SPEECH_OUTPUT);
+        }catch(ActivityNotFoundException tim){
+            showToast("Google mic isn't open");
+        }
     }
     private void saveToPhone(){
         String Data=createSaveString(); //define data
@@ -494,12 +533,14 @@ public class MainActivity extends AppCompatActivity {
         if(btn == spiceDispense.getId()){
             dispenseBtn.setVisibility(View.VISIBLE);
             renameBtn.setVisibility(View.VISIBLE);
+            speechBtn.setVisibility(View.VISIBLE);
             gotoBtn.setVisibility(View.GONE);
         }
         else if(btn ==STATE_LISTENING){
             dispenseBtn.setVisibility(View.GONE);
             renameBtn.setVisibility(View.GONE);
             gotoBtn.setVisibility(View.GONE);
+            speechBtn.setVisibility(View.GONE);
             reconnectBtn.setVisibility(View.GONE);
 
         }
@@ -507,6 +548,7 @@ public class MainActivity extends AppCompatActivity {
             dispenseBtn.setVisibility(View.GONE);
             renameBtn.setVisibility(View.GONE);
             gotoBtn.setVisibility(View.GONE);
+            speechBtn.setVisibility(View.GONE);
             reconnectBtn.setVisibility(View.VISIBLE);
         }
         else{
@@ -514,6 +556,7 @@ public class MainActivity extends AppCompatActivity {
             dispenseBtn.setVisibility(View.GONE);
             renameBtn.setVisibility(View.VISIBLE);
             gotoBtn.setVisibility(View.VISIBLE);
+            speechBtn.setVisibility(View.VISIBLE);
         }
     }
 
@@ -531,6 +574,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     private void rightRotate(){
+        numDispensed=0;
         String tmp = new String();
         for(int i=0; i<buttonNames.length;i++){
             tmp=buttonNames[(i+1)%4];
@@ -541,6 +585,7 @@ public class MainActivity extends AppCompatActivity {
         addLabelToButtons();
     }
     private void leftRotate(){
+        numDispensed=0;
         String tmp = new String();
         for(int i=buttonNames.length-1; i>0;i--){
             if(i == 0) {
@@ -639,6 +684,65 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
+    private int getNumber(String words){
+        int ret = 1;
+        for (int i = 0; i < words.length(); i++) {// getting the number in the string
+            char ch = words.charAt(i);
+            if(Character.isDigit(ch)) {
+                ret = Character.getNumericValue(ch);
+                break;
+            }
+        }
+        if(words.toLowerCase().contains("two")){
+            ret =2;
+        }
+        else if(words.toLowerCase().contains("three")){
+            ret =3;
+        }
+        else if(words.toLowerCase().contains("four")){
+            ret =4;
+        }
+        else if(words.toLowerCase().contains("five")){
+            ret =5;
+        }
+        else if(words.toLowerCase().contains("six")){
+            ret =6;
+        }
+        else if(words.toLowerCase().contains("seven")){
+            ret =7;
+        }
+        else if(words.toLowerCase().contains("eight")){
+            ret =8;
+        }
+        else if(words.toLowerCase().contains("nine")){
+            ret =9;
+        }
+        return ret;
+    }
+    private void processWords(String words){
+        int num = getNumber(words);
+
+        if(words.contains("tablespoons")||words.contains("tbsps")||words.contains("tablespoon")||words.contains("tbsp")){// do conversion for teaspoon to tablespoon
+            num *=3;
+        }
+        words = words.toUpperCase();
+        for(int i =0; i< buttonNames.length;i++){
+            if(words.contains(buttonNames[i].toUpperCase())){//if the text has a spice dispense it or go to it then dispense it
+                if(i==0){
+                    moreToDispense=num-1;
+                    sendRecive.write(DISPENSE.getBytes());
+                }
+                else{
+                    isAuto= true;
+                    moreToDispense=num-1;
+                    autoBuffer = buttonNames[i];
+                    gotTo(buttonOrder[i].getId());
+                }
+                break;
+            }
+        }
+
+    }
 
 
     @Override
@@ -648,6 +752,12 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), "Bluetooth is enabled", Toast.LENGTH_LONG).show();
             } else if (resultCode == RESULT_CANCELED) {
                 Toast.makeText(getApplicationContext(), "Bluetooth enabling was cancelled", Toast.LENGTH_LONG).show();
+            }
+        }
+        if(requestCode== REQ_CODE_SPEECH_OUTPUT){
+            if(resultCode == RESULT_OK && data!=null){
+                ArrayList<String> voiceInText = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                processWords(voiceInText.get(0));
             }
         }
     }
