@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
     Set<BluetoothDevice> deviceSet;
     TextView recievedView,statusView;
     EditText writeMsg;
-    String msgSend,Path,autoBuffer;
+    String msgSend,Path;
     String[] buttonNames = new String[4];
 
     SendRecive sendRecive;
@@ -749,7 +749,6 @@ public class MainActivity extends AppCompatActivity {
                 else if(spiceNameIdxes[i].idx!=0){
                     isAuto= true;
                     moreToDispense=num-1;
-                    autoBuffer = buttonNames[spiceNameIdxes[i].idx];
                     gotTo(buttonOrder[spiceNameIdxes[i].idx].getId());
                 }
                 break;
