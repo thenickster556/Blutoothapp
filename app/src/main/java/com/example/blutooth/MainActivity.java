@@ -42,7 +42,7 @@ import static java.lang.Thread.sleep;
 public class MainActivity extends AppCompatActivity {
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static final String DEVICE_NAME ="ESP32_LED_Control",FILE_NAME="DispensedSpices.txt";
-    private static final String STATUS = "Status: ",LEFT ="22",RIGHT="23",DISPENSE ="24",DISPENSE_DONE="Finished Dispensing",MOVE_LEFT="Moving Left",MOVE_RIGHT="Moving Right",MOVE_RIGHT2="Moving Right*2",DELIMITER="*";
+    private static final String STATUS = "Status: ",LEFT ="1",RIGHT="2",DISPENSE ="3",DISPENSE_DONE="Finished Dispensing",MOVE_LEFT="Moving Left",MOVE_RIGHT="Moving Right",MOVE_RIGHT2="Moving Right*2",DELIMITER="*";
     private static  BluetoothDevice btDevice;
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int green = Color.parseColor("#00ff00");
