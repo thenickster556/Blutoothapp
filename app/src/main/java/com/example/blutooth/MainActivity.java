@@ -49,13 +49,13 @@ import static java.lang.Thread.sleep;
 
 public class MainActivity extends AppCompatActivity {
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-//    private static final String DEVICE_NAME ="ESP32_LED_Control",FILE_NAME="DispensedSpices.txt";
-    private static final String DEVICE_NAME ="ESP32",FILE_NAME="DispensedSpices.txt";
-//    private static final String STATUS = "Status: ",LEFT ="22",RIGHT="23",DISPENSE ="24",DISPENSE_DONE="Finished Dispensing",MOVE_LEFT="Moving Left",MOVE_RIGHT="Moving Right",STOPPED="Stopped",
-//            MOVE_RIGHT2="Moving Right*2",DELIMITER="*",STOP="13";
+    private static final String DEVICE_NAME ="ESP32_LED_Control",FILE_NAME="DispensedSpices.txt";
+//    private static final String DEVICE_NAME ="ESP32",FILE_NAME="DispensedSpices.txt";
+    private static final String STATUS = "Status: ",LEFT ="22",RIGHT="23",DISPENSE ="24",DISPENSE_DONE="Finished Dispensing",MOVE_LEFT="Moving Left",MOVE_RIGHT="Moving Right",STOPPED="Stopped",
+            MOVE_RIGHT2="Moving Right*2",DELIMITER="*",STOP="13";
 
-    private static final String STATUS = "Status: ",LEFT ="1",RIGHT="2",DISPENSE ="3",DISPENSE_DONE="Finished Dispensing",MOVE_LEFT="Moving Left",MOVE_RIGHT="Moving Right",STOPPED="Stopped",
-            MOVE_RIGHT2="Moving Right*2",DELIMITER="*",STOP="7";
+//    private static final String STATUS = "Status: ",LEFT ="1",RIGHT="2",DISPENSE ="3",DISPENSE_DONE="Finished Dispensing",MOVE_LEFT="Moving Left",MOVE_RIGHT="Moving Right",STOPPED="Stopped",
+//            MOVE_RIGHT2="Moving Right*2",DELIMITER="*",STOP="7";
     private static  BluetoothDevice btDevice;
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int green = Color.parseColor("#00ff00");
@@ -78,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
     EditText writeMsg;
     String msgSend,Path;
     String[] buttonNames = new String[4];
-
+    public ArrayList<String> spiceQueue;
     SendRecive sendRecive;
 
     static final int STATE_LISTENING =1;
@@ -96,11 +96,13 @@ public class MainActivity extends AppCompatActivity {
 
         Path = (getApplicationContext().getFilesDir().getAbsolutePath()+"/"+FILE_NAME);
         send = (Button) findViewById(R.id.sendBtn);
+        send.setVisibility(View.GONE);
         spiceDispense = (Button) findViewById(R.id.dispenseSpice);
         spice0 = (Button) findViewById(R.id.spice0);
         spice1 = (Button) findViewById(R.id.spice1);
         spice2 = (Button) findViewById(R.id.spice2);
         eStopBtn = (Button) findViewById(R.id.eStopBtn);
+        eStopBtn.setVisibility(View.GONE);
         dispenseBtn = (Button) findViewById(R.id.dispenseBtn);
         dispenseBtn.setVisibility(View.GONE);
         reconnectBtn = (Button) findViewById(R.id.reconnectBtn);
@@ -118,6 +120,7 @@ public class MainActivity extends AppCompatActivity {
         recievedView = (TextView) findViewById(R.id.textViewMsg);
         statusView = (TextView) findViewById(R.id.statusView);
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        spiceQueue = new ArrayList<>();
         intentFilter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         disconnectFilter = new IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
         enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -319,6 +322,9 @@ public class MainActivity extends AppCompatActivity {
                         if(moreToDispense>0){// if more need to be dispensed do it
                             moreToDispense--;
                             sendRecive.write(DISPENSE.getBytes());
+                        }
+                        else if(!spiceQueue.isEmpty()){//keep requesting spice amounts until there are none left
+                            processWords(spiceQueue.remove(0));
                         }
                     }
                     else if(tmpMsg.equals(MOVE_LEFT)){
@@ -543,6 +549,7 @@ public class MainActivity extends AppCompatActivity {
             dispenseBtn.setVisibility(View.VISIBLE);
             renameBtn.setVisibility(View.VISIBLE);
             speechBtn.setVisibility(View.VISIBLE);
+            writeMsg.setVisibility(View.GONE);
             gotoBtn.setVisibility(View.GONE);
         }
         else if(btn ==STATE_LISTENING){
@@ -551,6 +558,7 @@ public class MainActivity extends AppCompatActivity {
             gotoBtn.setVisibility(View.GONE);
             speechBtn.setVisibility(View.GONE);
             reconnectBtn.setVisibility(View.GONE);
+            writeMsg.setVisibility(View.GONE);
 
         }
         else if(btn == reconnectBtn.getId()){
@@ -558,6 +566,8 @@ public class MainActivity extends AppCompatActivity {
             renameBtn.setVisibility(View.GONE);
             gotoBtn.setVisibility(View.GONE);
             speechBtn.setVisibility(View.GONE);
+            writeMsg.setVisibility(View.GONE);
+            writeMsg.setVisibility(View.GONE);
             reconnectBtn.setVisibility(View.VISIBLE);
         }
         else{
@@ -566,6 +576,7 @@ public class MainActivity extends AppCompatActivity {
             renameBtn.setVisibility(View.VISIBLE);
             gotoBtn.setVisibility(View.VISIBLE);
             speechBtn.setVisibility(View.VISIBLE);
+            writeMsg.setVisibility(View.GONE);
         }
     }
 
@@ -612,9 +623,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void renameBtn(int currBtn){
+        writeMsg.setVisibility(View.VISIBLE);
         String string = String.valueOf(writeMsg.getText());
         if(string.equals("")){
-            Toast.makeText(getApplicationContext(),"Type in the send message box",Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(),"Type name in message box",Toast.LENGTH_SHORT).show();
             return;
         }
         if(currBtn == spiceDispense.getId()){
@@ -728,7 +740,12 @@ public class MainActivity extends AppCompatActivity {
         }
         return ret;
     }
-    private void processWords(String words){
+    public void processWords(String words){
+
+        String[] toGetIngredients = words.split("and");
+        for(int i =1; i<toGetIngredients.length;i++)// adding the rest of ingredients to the spice queue
+            spiceQueue.add(toGetIngredients[i]);
+        words = toGetIngredients[0];
         int num = getNumber(words);
 
         if(words.contains("tablespoons")||words.contains("tbsps")||words.contains("tablespoon")||words.contains("tbsp")){// do conversion for teaspoon to tablespoon
