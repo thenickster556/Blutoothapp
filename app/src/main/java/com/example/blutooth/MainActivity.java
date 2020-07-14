@@ -96,11 +96,13 @@ public class MainActivity extends AppCompatActivity {
 
         Path = (getApplicationContext().getFilesDir().getAbsolutePath()+"/"+FILE_NAME);
         send = (Button) findViewById(R.id.sendBtn);
+        send.setVisibility(View.GONE);
         spiceDispense = (Button) findViewById(R.id.dispenseSpice);
         spice0 = (Button) findViewById(R.id.spice0);
         spice1 = (Button) findViewById(R.id.spice1);
         spice2 = (Button) findViewById(R.id.spice2);
         eStopBtn = (Button) findViewById(R.id.eStopBtn);
+        eStopBtn.setVisibility(View.GONE);
         dispenseBtn = (Button) findViewById(R.id.dispenseBtn);
         dispenseBtn.setVisibility(View.GONE);
         reconnectBtn = (Button) findViewById(R.id.reconnectBtn);
@@ -321,7 +323,7 @@ public class MainActivity extends AppCompatActivity {
                             moreToDispense--;
                             sendRecive.write(DISPENSE.getBytes());
                         }
-                        else if(!spiceQueue.isEmpty()){
+                        else if(!spiceQueue.isEmpty()){//keep requesting spice amounts until there are none left
                             processWords(spiceQueue.remove(0));
                         }
                     }
@@ -547,6 +549,7 @@ public class MainActivity extends AppCompatActivity {
             dispenseBtn.setVisibility(View.VISIBLE);
             renameBtn.setVisibility(View.VISIBLE);
             speechBtn.setVisibility(View.VISIBLE);
+            writeMsg.setVisibility(View.GONE);
             gotoBtn.setVisibility(View.GONE);
         }
         else if(btn ==STATE_LISTENING){
@@ -555,6 +558,7 @@ public class MainActivity extends AppCompatActivity {
             gotoBtn.setVisibility(View.GONE);
             speechBtn.setVisibility(View.GONE);
             reconnectBtn.setVisibility(View.GONE);
+            writeMsg.setVisibility(View.GONE);
 
         }
         else if(btn == reconnectBtn.getId()){
@@ -562,6 +566,8 @@ public class MainActivity extends AppCompatActivity {
             renameBtn.setVisibility(View.GONE);
             gotoBtn.setVisibility(View.GONE);
             speechBtn.setVisibility(View.GONE);
+            writeMsg.setVisibility(View.GONE);
+            writeMsg.setVisibility(View.GONE);
             reconnectBtn.setVisibility(View.VISIBLE);
         }
         else{
@@ -570,6 +576,7 @@ public class MainActivity extends AppCompatActivity {
             renameBtn.setVisibility(View.VISIBLE);
             gotoBtn.setVisibility(View.VISIBLE);
             speechBtn.setVisibility(View.VISIBLE);
+            writeMsg.setVisibility(View.GONE);
         }
     }
 
@@ -616,9 +623,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void renameBtn(int currBtn){
+        writeMsg.setVisibility(View.VISIBLE);
         String string = String.valueOf(writeMsg.getText());
         if(string.equals("")){
-            Toast.makeText(getApplicationContext(),"Type in the send message box",Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(),"Type name in message box",Toast.LENGTH_SHORT).show();
             return;
         }
         if(currBtn == spiceDispense.getId()){
@@ -733,6 +741,11 @@ public class MainActivity extends AppCompatActivity {
         return ret;
     }
     public void processWords(String words){
+
+        String[] toGetIngredients = words.split("and");
+        for(int i =1; i<toGetIngredients.length;i++)// adding the rest of ingredients to the spice queue
+            spiceQueue.add(toGetIngredients[i]);
+        words = toGetIngredients[0];
         int num = getNumber(words);
 
         if(words.contains("tablespoons")||words.contains("tbsps")||words.contains("tablespoon")||words.contains("tbsp")){// do conversion for teaspoon to tablespoon
