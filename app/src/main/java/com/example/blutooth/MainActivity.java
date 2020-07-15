@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn,reconnectBtn,eStopBtn,speechBtn;
+    Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn,reconnectBtn,eStopBtn,speechBtn,recipeBtn;
     Button[] buttonOrder;
     Button selectedBtn= null;
     boolean busy= false,isAuto=false;
@@ -98,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
         spice0 = (Button) findViewById(R.id.spice0);
         spice1 = (Button) findViewById(R.id.spice1);
         spice2 = (Button) findViewById(R.id.spice2);
+        recipeBtn = (Button) findViewById(R.id.recipeBtn);
         eStopBtn = (Button) findViewById(R.id.eStopBtn);
         eStopBtn.setVisibility(View.GONE);
         dispenseBtn = (Button) findViewById(R.id.dispenseBtn);
@@ -150,6 +151,13 @@ public class MainActivity extends AppCompatActivity {
                     String string = String.valueOf(writeMsg.getText());
                     sendRecive.write(string.getBytes());
                 }
+            }
+        });
+        recipeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this,SpiceAPI.class);
+                startActivity(intent);
             }
         });
         eStopBtn.setOnClickListener(new View.OnClickListener() {
