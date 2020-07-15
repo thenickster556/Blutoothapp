@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn,reconnectBtn,eStopBtn,speechBtn;
+    Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn,reconnectBtn,eStopBtn,speechBtn,recipeBtn;
     Button[] buttonOrder;
     Button selectedBtn= null;
     boolean busy= false,isAuto=false;
@@ -83,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
     static final int STATE_CONNECTED =3;
     static final int STATE_CONNECTION_FAILED = 4;
     static final int STATE_MESSAGE_RECEIVED =5;
+    static final int STANDARD_CONNECTION = (-25);
     static final int REQ_CODE_SPEECH_OUTPUT = 143;
 
 
@@ -98,6 +99,8 @@ public class MainActivity extends AppCompatActivity {
         spice0 = (Button) findViewById(R.id.spice0);
         spice1 = (Button) findViewById(R.id.spice1);
         spice2 = (Button) findViewById(R.id.spice2);
+        recipeBtn = (Button) findViewById(R.id.recipeBtn);
+        recipeBtn.setVisibility(View.GONE);
         eStopBtn = (Button) findViewById(R.id.eStopBtn);
         eStopBtn.setVisibility(View.GONE);
         dispenseBtn = (Button) findViewById(R.id.dispenseBtn);
@@ -150,6 +153,13 @@ public class MainActivity extends AppCompatActivity {
                     String string = String.valueOf(writeMsg.getText());
                     sendRecive.write(string.getBytes());
                 }
+            }
+        });
+        recipeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this,SpiceAPI.class);
+                startActivity(intent);
             }
         });
         eStopBtn.setOnClickListener(new View.OnClickListener() {
@@ -298,7 +308,7 @@ public class MainActivity extends AppCompatActivity {
                 case STATE_CONNECTED:
                     statusView.setText(STATUS + "Connected");
                     statusView.setTextColor(green);
-                    buttonVisibility(STATE_LISTENING);
+                    buttonVisibility(STANDARD_CONNECTION);
                     busy = false;
                     break;
                 case STATE_CONNECTION_FAILED:
@@ -348,6 +358,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     statusView.setText("Message Received");
                     statusView.setTextColor(green);
+                    buttonVisibility(STANDARD_CONNECTION);
                     busy=false;
                     break;
             }
@@ -556,7 +567,17 @@ public class MainActivity extends AppCompatActivity {
             speechBtn.setVisibility(View.GONE);
             reconnectBtn.setVisibility(View.GONE);
             writeMsg.setVisibility(View.GONE);
+            recipeBtn.setVisibility(View.GONE);
 
+        }
+        else if(btn== STANDARD_CONNECTION){
+            dispenseBtn.setVisibility(View.GONE);
+            renameBtn.setVisibility(View.GONE);
+            gotoBtn.setVisibility(View.GONE);
+            speechBtn.setVisibility(View.GONE);
+            reconnectBtn.setVisibility(View.GONE);
+            writeMsg.setVisibility(View.GONE);
+            recipeBtn.setVisibility(View.VISIBLE);
         }
         else if(btn == reconnectBtn.getId()){
             dispenseBtn.setVisibility(View.GONE);
@@ -565,6 +586,7 @@ public class MainActivity extends AppCompatActivity {
             speechBtn.setVisibility(View.GONE);
             writeMsg.setVisibility(View.GONE);
             writeMsg.setVisibility(View.GONE);
+            recipeBtn.setVisibility(View.GONE);
             reconnectBtn.setVisibility(View.VISIBLE);
         }
         else{
