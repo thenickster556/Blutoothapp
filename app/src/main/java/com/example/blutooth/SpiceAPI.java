@@ -1,5 +1,6 @@
 package com.example.blutooth;
 
+        import android.content.Intent;
         import android.os.Build;
         import android.os.Bundle;
         import android.os.Handler;
@@ -36,7 +37,7 @@ public class SpiceAPI extends AppCompatActivity {
     private int from = 0, to = 19;
     private String nakedUrl = "https://api.edamam.com/search?q=" + q + "&app_id=3e6d9a08&app_key=b6723e25aa0fde680a04c6c7cf456de2&from=" + from + "&to=" + to;
 
-    Button send;
+    Button send,back;
     ConstraintLayout layout;
     TextView httpResponse;  //For testing purposes only
     EditText query;
@@ -47,7 +48,7 @@ public class SpiceAPI extends AppCompatActivity {
         setContentView(R.layout.activity_recipe);
 
         send = (Button)findViewById(R.id.sendButton);
-
+        back = (Button)findViewById(R.id.backBtn);
         httpResponse = new TextView(this);
         httpResponse.setText("Something for now.");
 
@@ -65,7 +66,13 @@ public class SpiceAPI extends AppCompatActivity {
         } catch (JSONException e) {
             e.printStackTrace();
         }*/
-
+        back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(SpiceAPI.this,MainActivity.class);
+                startActivity(intent);
+            }
+        });
         send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
