@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String DEVICE_NAME ="ESP32",FILE_NAME="DispensedSpices.txt";
 
     private static final String STATUS = "Status: ",LEFT ="1",RIGHT="2",DISPENSE ="3",DISPENSE_DONE="Finished Dispensing",MOVE_LEFT="Moving Left",MOVE_RIGHT="Moving Right",STOPPED="Stopped",
-            MOVE_RIGHT2="Moving Right*2",DELIMITER="*",STOP="4",DEFAULT_BUTTON_NAME="Rename",SAVE="25",LOAD="26";
+            MOVE_RIGHT2="Moving Right*2",DELIMITER="*",STOP="4",DEFAULT_BUTTON_NAME="Rename",SAVE="25",LOAD="26",EMPTY= "EPROM is empty";
     private static  BluetoothDevice btDevice;
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int green = Color.parseColor("#00ff00");
@@ -94,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
 
         Path = (getApplicationContext().getFilesDir().getAbsolutePath()+"/"+FILE_NAME);
         send = (Button) findViewById(R.id.sendBtn);
-//        send.setVisibility(View.GONE);
+        send.setVisibility(View.GONE);
         spiceDispense = (Button) findViewById(R.id.dispenseSpice);
         spice0 = (Button) findViewById(R.id.spice0);
         spice1 = (Button) findViewById(R.id.spice1);
@@ -310,6 +310,7 @@ public class MainActivity extends AppCompatActivity {
                     statusView.setText(STATUS + "Connected");
                     statusView.setTextColor(green);
                     buttonVisibility(STATE_LISTENING);
+                    loadNames();
                     busy = false;
                     break;
                 case STATE_CONNECTION_FAILED:
@@ -336,11 +337,11 @@ public class MainActivity extends AppCompatActivity {
                             processWords(spiceQueue.remove(0));
                         }
                     }
-                    if(loading && !tmpMsg.equals(DELIMITER)){
-                        buttonNames = tmpMsg.split(DELIMITER);
+                    if(loading && !tmpMsg.equals(EMPTY)){
+                        seperateNames(tmpMsg);
                         loading = false;
                     }
-                    else if(loading && tmpMsg.equals(DELIMITER)){
+                    else if(loading && tmpMsg.equals(EMPTY)){
                         String string ="";
                         for(int i=0;i<buttonNames.length;i++){
                             buttonNames[i] = DEFAULT_BUTTON_NAME;// this will have to be seperate strings
@@ -443,9 +444,6 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     bytes = inputStream.read(buffer);
                     handler.obtainMessage(STATE_MESSAGE_RECEIVED, bytes, -1, buffer).sendToTarget();
-                    if(selectedBtn.getId()==dispenseBtn.getId()){
-
-                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -521,11 +519,11 @@ public class MainActivity extends AppCompatActivity {
             addLabelToButtons();
         }
         else{
-            String string = "Rename Spice";
+            String string = "Rename";
             for(int i=0;i<buttonNames.length;i++){
                 buttonNames[i]= string;
             }
-            saveToPhone();
+            saveNames();
         }
         showToast("Correctly Loaded");
     }
@@ -628,7 +626,7 @@ public class MainActivity extends AppCompatActivity {
             buttonNames[(i+1)%4]=buttonNames[0];
             buttonNames[0]=tmp;
         }
-        saveToPhone();
+        saveNames();
         addLabelToButtons();
     }
     private void leftRotate(){
@@ -645,7 +643,7 @@ public class MainActivity extends AppCompatActivity {
             }
             buttonNames[3]=tmp;
         }
-        saveToPhone();
+        saveNames();
         addLabelToButtons();
     }
 
