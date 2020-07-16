@@ -116,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
         buttonOrder = new Button[]{spiceDispense, spice0, spice1, spice2};
 
         writeMsg = (EditText) findViewById(R.id.editTextMsg);
+        writeMsg.setVisibility(View.GONE);
 
         recievedView = (TextView) findViewById(R.id.textViewMsg);
         statusView = (TextView) findViewById(R.id.statusView);
@@ -308,7 +309,7 @@ public class MainActivity extends AppCompatActivity {
                 case STATE_CONNECTED:
                     statusView.setText(STATUS + "Connected");
                     statusView.setTextColor(green);
-                    buttonVisibility(STANDARD_CONNECTION);
+                    buttonVisibility(STATE_LISTENING);
                     busy = false;
                     break;
                 case STATE_CONNECTION_FAILED:
@@ -358,7 +359,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     statusView.setText("Message Received");
                     statusView.setTextColor(green);
-                    buttonVisibility(STANDARD_CONNECTION);
+                    buttonVisibility(STATE_LISTENING);
                     busy=false;
                     break;
             }
