@@ -102,7 +102,7 @@ public class SpiceAPI extends AppCompatActivity {
                     Toast.makeText(getApplicationContext(), "API call didn't go through", Toast.LENGTH_LONG).show();
                 }
 
-                //while(http.equals("")) ;
+                while(http.equals("")) ;
                 Toast.makeText(getApplicationContext(), "API call went through", Toast.LENGTH_LONG).show();
                 try {
                     apiResponse = new JSONObject(http);
