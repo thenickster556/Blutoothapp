@@ -669,6 +669,7 @@ public class MainActivity extends AppCompatActivity {
             writeMsg.getText().clear();
         }
         saveToPhone();
+        writeMsg.setVisibility(View.GONE);
     }
     private void changeColors(int currBut){
         if(currBut == spiceDispense.getId()){
@@ -847,6 +848,6 @@ class SpiceNameIdx implements Comparable<SpiceNameIdx>{
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     @Override
     public int compareTo(SpiceNameIdx spiceNameIdx) {
-        return Integer.compare(idx,spiceNameIdx.idx);
+        return Integer.compare(name.length(),spiceNameIdx.name.length());
     }
 }
