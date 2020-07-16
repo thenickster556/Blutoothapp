@@ -52,7 +52,7 @@ public class SpiceAPI extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_recipe);
 
         //Simulate getting info from first page
         spiceList.add("Salt");
@@ -102,8 +102,6 @@ public class SpiceAPI extends AppCompatActivity {
                 } catch(IOException e) {
                     httpResponse.setText("API call didn't go through.");
                 }
-
-                while(httpResponse.getText().toString().contains("Something")) ;
 
                 String apiRes = httpResponse.getText().toString();
                 try {

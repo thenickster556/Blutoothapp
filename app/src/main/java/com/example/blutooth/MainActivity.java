@@ -49,7 +49,7 @@ import static java.lang.Thread.sleep;
 
 public class MainActivity extends AppCompatActivity {
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    private static final String DEVICE_NAME ="ESP321",FILE_NAME="DispensedSpices.txt";
+    private static final String DEVICE_NAME ="ESP32",FILE_NAME="DispensedSpices.txt";
 
     private static final String STATUS = "Status: ",LEFT ="1",RIGHT="2",DISPENSE ="3",DISPENSE_DONE="Finished Dispensing",MOVE_LEFT="Moving Left",MOVE_RIGHT="Moving Right",STOPPED="Stopped",
             MOVE_RIGHT2="Moving Right*2",DELIMITER="*",STOP="4";
