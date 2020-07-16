@@ -45,6 +45,7 @@ public class SpiceAPI extends AppCompatActivity {
     Button send;
     LinearLayout layout;
     TextView httpResponse;  //For testing purposes only
+    String http = "";
     EditText query;
     ArrayList<String> spiceList = new ArrayList<>(4);
 
@@ -62,7 +63,6 @@ public class SpiceAPI extends AppCompatActivity {
         send = (Button)findViewById(R.id.sendButton);
         layout = (LinearLayout)findViewById(R.id.linearLayout);
         httpResponse = new TextView(this);
-        httpResponse.setText("Something for now.");
         query = (EditText)findViewById(R.id.query);
 
         card1 = (CardView)findViewById(R.id.card1);
@@ -99,14 +99,13 @@ public class SpiceAPI extends AppCompatActivity {
                 try {
                     startRequestThread(nakedUrl);
                 } catch(IOException e) {
-                    httpResponse.setText("API call didn't go through.");
+                    Toast.makeText(getApplicationContext(), "API call didn't go through", Toast.LENGTH_LONG).show();
                 }
 
-                while(httpResponse.getText().toString().contains("Something")) ;
-
-                String apiRes = httpResponse.getText().toString();
+                //while(http.equals("")) ;
+                Toast.makeText(getApplicationContext(), "API call went through", Toast.LENGTH_LONG).show();
                 try {
-                    apiResponse = new JSONObject(apiRes);
+                    apiResponse = new JSONObject(http);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -118,7 +117,7 @@ public class SpiceAPI extends AppCompatActivity {
                 JSONArray recipes = null;
                 try {
                     recipes = getRecipesFromHits(apiResponse);
-                    updateCardViews(recipes);
+                    //updateCardViews(recipes);
                 }
                 catch(JSONException e) {
                     e.printStackTrace();
@@ -142,7 +141,6 @@ public class SpiceAPI extends AppCompatActivity {
 
                     if (responseCode == 200) {
                         stream = connection.getInputStream();
-                        System.out.println("We did it.");
                     }
                     else
                         stream = connection.getErrorStream();
@@ -155,13 +153,13 @@ public class SpiceAPI extends AppCompatActivity {
                         response.append(line);
                     }
 
-                    httpResponse.setText(response.toString());
+                    http = response.toString();
                     in.close();
                     connection.disconnect();
 
                 }
                 catch (IOException e) {
-                    httpResponse.setText("API didn't go through");
+                    Toast.makeText(getApplicationContext(), "API call didn't go through in thread", Toast.LENGTH_LONG).show();
                 }
             }
         }.start();
