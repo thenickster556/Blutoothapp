@@ -101,8 +101,8 @@ public class SpiceAPI extends AppCompatActivity {
                 }
 
                 while(httpResponse.getText().toString().contains("Something")) ;
-
                 String apiRes = httpResponse.getText().toString();
+
                 try {
                     apiResponse = new JSONObject(apiRes);
                 } catch (JSONException e) {
@@ -116,7 +116,7 @@ public class SpiceAPI extends AppCompatActivity {
                 JSONArray recipes = null;
                 try {
                     recipes = getRecipesFromHits(apiResponse);
-                    updateCardViews(recipes);
+                    //updateCardViews(recipes);
                 }
                 catch(JSONException e) {
                     e.printStackTrace();
