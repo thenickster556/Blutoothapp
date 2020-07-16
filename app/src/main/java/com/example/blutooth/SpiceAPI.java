@@ -1,36 +1,33 @@
 package com.example.blutooth;
 
-        import android.content.Intent;
-        import android.os.Build;
-        import android.os.Bundle;
-        import android.os.Handler;
-        import android.os.Message;
-        import android.view.View;
-        import android.widget.Button;
-        import android.widget.EditText;
-        import android.widget.LinearLayout;
-        import android.widget.TextView;
-        import android.widget.Toast;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
 
-        import androidx.annotation.RequiresApi;
-        import androidx.appcompat.app.AppCompatActivity;
-//import androidx.cardview.widget.CardView;
-        import androidx.cardview.widget.CardView;
-        import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
 
 //import com.google.android.material.snackbar.Snackbar;
-
-        import org.json.JSONArray;
-        import org.json.JSONException;
-        import org.json.JSONObject;
-
-        import java.io.BufferedReader;
-        import java.io.IOException;
-        import java.io.InputStream;
-        import java.io.InputStreamReader;
-        import java.net.HttpURLConnection;
-        import java.net.URL;
-        import java.util.ArrayList;
 
 public class SpiceAPI extends AppCompatActivity {
     //Remember the CardView.
