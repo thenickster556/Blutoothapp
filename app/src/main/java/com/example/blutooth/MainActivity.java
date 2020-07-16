@@ -670,7 +670,8 @@ public class MainActivity extends AppCompatActivity {
             writeMsg.getText().clear();
         }
         saveToPhone();
-        writeMsg.setVisibility(View.GONE);
+        buttonVisibility(STATE_LISTENING);
+        changeColors(DefaultColors);
     }
     private void changeColors(int currBut){
         if(currBut == spiceDispense.getId()){
