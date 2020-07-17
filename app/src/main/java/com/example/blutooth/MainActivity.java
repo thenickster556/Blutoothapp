@@ -117,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
         buttonOrder = new Button[]{spiceDispense, spice0, spice1, spice2};
 
         writeMsg = (EditText) findViewById(R.id.editTextMsg);
+        writeMsg.setVisibility(View.GONE);
 
         recievedView = (TextView) findViewById(R.id.textViewMsg);
         statusView = (TextView) findViewById(R.id.statusView);
@@ -319,7 +320,7 @@ public class MainActivity extends AppCompatActivity {
                 case STATE_CONNECTED:
                     statusView.setText(STATUS + "Connected");
                     statusView.setTextColor(green);
-                    buttonVisibility(STANDARD_CONNECTION);
+                    buttonVisibility(STATE_LISTENING);
                     loadNames();
                     busy = false;
                     break;
@@ -365,7 +366,7 @@ public class MainActivity extends AppCompatActivity {
                     if(!loading){
                         statusView.setText("Message Received");
                         statusView.setTextColor(green);
-                        buttonVisibility(STANDARD_CONNECTION);
+                        buttonVisibility(STATE_LISTENING);
                         busy=false;
                     }
                     if(tmpMsg.equals(MOVE_LEFT)){
@@ -697,6 +698,8 @@ public class MainActivity extends AppCompatActivity {
             writeMsg.getText().clear();
         }
         saveNames();
+        buttonVisibility(STATE_LISTENING);
+        changeColors(DefaultColors);
         // saveToPhone();
     }
     private void changeColors(int currBut){
@@ -894,6 +897,6 @@ class SpiceNameIdx implements Comparable<SpiceNameIdx>{
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     @Override
     public int compareTo(SpiceNameIdx spiceNameIdx) {
-        return Integer.compare(idx,spiceNameIdx.idx);
+        return Integer.compare(name.length(),spiceNameIdx.name.length());
     }
 }
