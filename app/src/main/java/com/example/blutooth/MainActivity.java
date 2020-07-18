@@ -583,18 +583,21 @@ public class MainActivity extends AppCompatActivity {
             if(names.charAt(i)==DELIMITER.charAt(0)&&idx==0){
                 spiceIndexSaver[idx].name=names.substring(from,i);
                 spiceIndexSaver[idx].currIdx=idx;
+                spiceIndexSaver[idx].startIdx=idx;
                 idx++;
                 from = i;
             }
             else if(names.charAt(i)==DELIMITER.charAt(0)&&(idx==1||idx==2)){
                 spiceIndexSaver[idx].name=names.substring(from+1,i);
                 spiceIndexSaver[idx].currIdx=idx;
+                spiceIndexSaver[idx].startIdx=idx;
                 idx++;
                 from = i;
             }
             if(idx==3){
                 spiceIndexSaver[idx].name=names.substring(from+1);
                 spiceIndexSaver[idx].currIdx=idx;
+                spiceIndexSaver[idx].startIdx=idx;
                 break;
             }
         }
@@ -692,7 +695,9 @@ public class MainActivity extends AppCompatActivity {
                 spiceIndexSavertoReturn =spiceIndexSaver[i];
             }
         }
+        assert(spiceIndexSavertoReturn==null);
         return spiceIndexSavertoReturn;
+
     }
 
     private void renameBtn(int currBtn){
