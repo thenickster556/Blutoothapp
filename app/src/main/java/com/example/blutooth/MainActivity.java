@@ -368,8 +368,9 @@ public class MainActivity extends AppCompatActivity {
                         loading = false;
                     } else if (loading && tmpMsg.equals(EMPTY)) {
                         String string = "";
-                        for (int i = 0; i < buttonNames.length; i++) {
-                            buttonNames[i] = DEFAULT_BUTTON_NAME;// this will have to be seperate strings
+                        for (int i = 0; i < spiceIndexSaver.length; i++) {
+                            spiceIndexSaver[i].name = DEFAULT_BUTTON_NAME;// this will have to be seperate strings
+                            spiceIndexSaver[i].currIdx = i;
                         }
                         addLabelToButtons();
                         loading = false;
@@ -521,11 +522,11 @@ public class MainActivity extends AppCompatActivity {
     private String createSaveString(){
         String send= "";
 //        The last one dont put the delimiter
-        for(int i = 0;i<buttonNames.length;i++){
-            if(i==(buttonNames.length-1))
-                send += buttonNames[i];
+        for(int i = 0;i<spiceIndexSaver.length;i++){
+            if(i==(spiceIndexSaver.length-1))
+                send += spiceIndexSaver[i].name;
             else
-                send = send + buttonNames[i]+DELIMITER;
+                send = send + spiceIndexSaver[i].name+DELIMITER;
         }
         return send;
     }
@@ -548,47 +549,50 @@ public class MainActivity extends AppCompatActivity {
         }
         else{
             String string = "Rename";
-            for(int i=0;i<buttonNames.length;i++){
-                buttonNames[i]= string;
+            for(int i=0;i<spiceIndexSaver.length;i++){
+                spiceIndexSaver[i].name= string;
             }
             saveNames();
         }
         showToast("Correctly Loaded");
     }
     private void addLabelToButtons(){
-        for(int i = 0;i<buttonNames.length;i++){
-            switch(i){
-                case 0:
-                    spiceDispense.setText(buttonNames[i]);
-                    break;
-                case 1:
-                    spice0.setText(buttonNames[i]);
-                    break;
-                case 2:
-                    spice1.setText(buttonNames[i]);
-                    break;
-                case 3:
-                    spice2.setText(buttonNames[i]);
-                    break;
+        for(int i = 0;i<spiceIndexSaver.length;i++){//make sure that the index the spice should be in is set appropriately
+            if(spiceIndexSaver[i].currIdx==0){
+                buttonOrder[0].setText(spiceIndexSaver[i].name);
+            }
+            else if(spiceIndexSaver[i].currIdx==1){
+                buttonOrder[1].setText(spiceIndexSaver[i].name);
+            }
+            else if(spiceIndexSaver[i].currIdx==2){
+                buttonOrder[2].setText(spiceIndexSaver[i].name);
+            }
+            else if(spiceIndexSaver[i].currIdx==3){
+                buttonOrder[3].setText(spiceIndexSaver[i].name);
             }
         }
+
 
     }
     private void seperateNames(String names){
         int idx=0,from=0;
         for(int i=0;i<names.length();i++){
             if(names.charAt(i)==DELIMITER.charAt(0)&&idx==0){
-                buttonNames[idx]=names.substring(from,i);
+                spiceIndexSaver[idx].name=names.substring(from,i);
+                spiceIndexSaver[idx].currIdx=idx;
                 idx++;
                 from = i;
             }
             else if(names.charAt(i)==DELIMITER.charAt(0)&&(idx==1||idx==2)){
-                buttonNames[idx]=names.substring(from+1,i);
+                spiceIndexSaver[idx].name=names.substring(from+1,i);
+                spiceIndexSaver[idx].currIdx=idx;
                 idx++;
                 from = i;
             }
             if(idx==3){
-                buttonNames[idx]=names.substring(from+1);
+                spiceIndexSaver[idx].name=names.substring(from+1);
+                spiceIndexSaver[idx].currIdx=idx;
+                break;
             }
         }
     }
@@ -657,29 +661,24 @@ public class MainActivity extends AppCompatActivity {
             sendRecive.write(RIGHT.getBytes());
         }
     }
-    private void rightRotate(){
+    private void rightRotate(){//logic is backwards
         numDispensed=0;
         String tmp = new String();
-        for(int i=0; i<buttonNames.length;i++){
-            tmp=buttonNames[(i+1)%4];
-            buttonNames[(i+1)%4]=buttonNames[0];
-            buttonNames[0]=tmp;
+        for(int i=0; i<spiceIndexSaver.length;i++){
+            spiceIndexSaver[i].currIdx=(spiceIndexSaver[i].currIdx+1)%4;
         }
         addLabelToButtons();
     }
     private void leftRotate(){
         numDispensed=0;
         String tmp = new String();
-        for(int i=buttonNames.length-1; i>0;i--){
+        for(int i=spiceIndexSaver.length-1; i>0;i--){
             if(i == 0) {
-                tmp=buttonNames[0];
-                buttonNames[0]=buttonNames[3];
+                spiceIndexSaver[i].currIdx=4;
             }
             else{
-                tmp=buttonNames[(i-1)];
-                buttonNames[(i-1)]=buttonNames[3];
+                spiceIndexSaver[i].currIdx-=1;
             }
-            buttonNames[3]=tmp;
         }
         addLabelToButtons();
     }
@@ -693,22 +692,22 @@ public class MainActivity extends AppCompatActivity {
         }
         if(currBtn == spiceDispense.getId()){
             spiceDispense.setText(string);
-            buttonNames[0]=string;
+            spiceIndexSaver[0].name=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice0.getId()){
             spice0.setText(string);
-            buttonNames[1]=string;
+            spiceIndexSaver[1].name=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice1.getId()){
             spice1.setText(string);
-            buttonNames[2]=string;
+            spiceIndexSaver[2].name=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice2.getId()){
             spice2.setText(string);
-            buttonNames[3]=string;
+            spiceIndexSaver[3].name=string;
             writeMsg.getText().clear();
         }
         saveNames();
@@ -819,14 +818,14 @@ public class MainActivity extends AppCompatActivity {
         words = words.toUpperCase();
         SpiceNameIdx[] spiceNameIdxes = new SpiceNameIdx[4];
         PriorityQueue<SpiceNameIdx> priorityQueue = new PriorityQueue<>();
-        for(int i=0; i<buttonNames.length;i++){
-            spiceNameIdxes[i]= new SpiceNameIdx(i,buttonNames[i]);
-            priorityQueue.add(new SpiceNameIdx(i,buttonNames[i]));
+        for(int i=0; i<spiceIndexSaver.length;i++){
+            spiceNameIdxes[i]= new SpiceNameIdx(i,spiceIndexSaver[i].name);
+            priorityQueue.add(new SpiceNameIdx(i,spiceIndexSaver[i].name));
         }
         for(int i=spiceNameIdxes.length-1;!priorityQueue.isEmpty();i--)
             spiceNameIdxes[i]=priorityQueue.poll();
 
-        for(int i =0; i< buttonNames.length;i++){
+        for(int i =0; i< spiceIndexSaver.length;i++){
             if(words.contains(spiceNameIdxes[i].name.toUpperCase())){//if the text has a spice dispense it or go to it then dispense it
                 if(spiceNameIdxes[i].idx==0){
                     moreToDispense=num-1;
@@ -882,13 +881,13 @@ public class MainActivity extends AppCompatActivity {
     }
     private void saveNames(){
         String string = "";
-        for(int i=0;i<buttonNames.length;i++){
-            if(i!=buttonNames.length-1) {
-                string += buttonNames[i];
+        for(int i=0;i<spiceIndexSaver.length;i++){
+            if(i!=spiceIndexSaver.length-1) {
+                string += spiceIndexSaver[i].name;
                 string += DELIMITER;
             }
             else{
-                string += buttonNames[i];
+                string += spiceIndexSaver[i].name;
             }
         }
         sendingString= string;
