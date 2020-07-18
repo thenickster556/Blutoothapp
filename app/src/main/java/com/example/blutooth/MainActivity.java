@@ -571,7 +571,7 @@ public class MainActivity extends AppCompatActivity {
                 buttonOrder[2].setText(spiceIndexSaver[i].name);
             }
             else if(spiceIndexSaver[i].currIdx==3){
-                buttonOrder[3].setText(spiceIndexSaver[i].name);
+                spice2.setText(spiceIndexSaver[i].name);//when i use spice
             }
         }
 
@@ -675,9 +675,9 @@ public class MainActivity extends AppCompatActivity {
     private void leftRotate(){
         numDispensed=0;
         String tmp = new String();
-        for(int i=spiceIndexSaver.length-1; i>0;i--){
+        for(int i=spiceIndexSaver.length-1; i>=0;i--){
             if(i == 0) {
-                spiceIndexSaver[i].currIdx=4;
+                spiceIndexSaver[i].currIdx=3;
             }
             else{
                 spiceIndexSaver[i].currIdx-=1;
