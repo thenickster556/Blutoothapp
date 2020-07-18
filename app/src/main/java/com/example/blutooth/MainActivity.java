@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String DEVICE_NAME ="ESP32",FILE_NAME="DispensedSpices.txt";
 
     private static final String STATUS = "Status: ",LEFT ="1",RIGHT="2",DISPENSE ="3",DISPENSE_DONE="Finished Dispensing",MOVE_LEFT="Moving Left",MOVE_RIGHT="Moving Right",STOPPED="Stopped",
-            MOVE_RIGHT2="Moving Right*2",DELIMITER="*",STOP="4",DEFAULT_BUTTON_NAME="Rename",SAVE="25",LOAD="26",EMPTY= "EPROM is empty";
+            MOVE_RIGHT2="Moving Right*2",DELIMITER="*",STOP="7",DEFAULT_BUTTON_NAME="Rename",SAVE="25",LOAD="26",EMPTY= "EPROM is empty",SAVED ="Saved";
     private static  BluetoothDevice btDevice;
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int green = Color.parseColor("#00ff00");
@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int DefaultColors = -20000;
 
 
-    boolean loading = false, connected=false;
+    boolean loading = false, connected=false, saving =false;
 
     Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn,reconnectBtn,eStopBtn,speechBtn,recipeBtn;
     Button[] buttonOrder;
@@ -77,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
     String msgSend,sendingString,Path;
     String[] buttonNames = new String[4];
     public ArrayList<String> spiceQueue;
+    SpiceIndexSaver[] spiceIndexSaver;
     SendRecive sendRecive;
 
     static final int STATE_LISTENING =1;
@@ -127,6 +128,10 @@ public class MainActivity extends AppCompatActivity {
         disconnectFilter = new IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
         enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 
+        spiceIndexSaver = new SpiceIndexSaver[4];
+        for(int i=0;i<spiceIndexSaver.length;i++)
+            spiceIndexSaver[i]= new SpiceIndexSaver();
+
         requestCodeForEnable = 1;
 
         IntentFilter filter = new IntentFilter();
@@ -137,16 +142,6 @@ public class MainActivity extends AppCompatActivity {
 
         initBluetooth();
         DiscoverBT();
-//        while(true){
-//            if(connected==true){
-//                loadNames();
-//                break;
-//            }
-//        }
-
-//        while(loading){
-//        }
-//        LoadNames();//check this to see if needs to be reworked
         ClickListeners();
         // Register for broadcasts when a device is discovered.
         
@@ -297,8 +292,17 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+    Runnable loadnamesDelay = new Runnable() {
+        @Override
+        public void run(){
+            loadNames();
+        }
+    };
 
-        Handler handler = new Handler(new Handler.Callback() {
+
+    Handler h = new Handler();
+
+    Handler handler = new Handler(new Handler.Callback() {
         @RequiresApi(api = Build.VERSION_CODES.O)
         @Override
         public boolean handleMessage(Message msg) {
@@ -321,7 +325,7 @@ public class MainActivity extends AppCompatActivity {
                     statusView.setText(STATUS + "Connected");
                     statusView.setTextColor(green);
                     buttonVisibility(STATE_LISTENING);
-                    loadNames();
+                    h.postDelayed(loadnamesDelay,1000);
                     busy = false;
                     break;
                 case STATE_CONNECTION_FAILED:
@@ -334,7 +338,10 @@ public class MainActivity extends AppCompatActivity {
                 case STATE_MESSAGE_RECEIVED:
                     byte[] readBuff = (byte[]) msg.obj;
                     String tmpMsg = new String(readBuff,0,msg.arg1);
-                    recievedView.setText(tmpMsg);
+
+                    if(!tmpMsg.contains(DELIMITER) && !tmpMsg.equals(EMPTY)){
+                        recievedView.setText(tmpMsg);
+                    }
 //                    This is only done when there is confirmation that the spice has been dispensed
                     if(tmpMsg.equals(DISPENSE_DONE)){
                         numDispensed++;
@@ -348,48 +355,57 @@ public class MainActivity extends AppCompatActivity {
                             processWords(spiceQueue.remove(0));
                         }
                     }
-                    if(loading && !tmpMsg.equals(EMPTY)){
-                        seperateNames(tmpMsg);
-                        loading = false;
+                    if(tmpMsg.equals(SAVED)){
+                        saving = false;
                     }
-                    else if(loading && tmpMsg.equals(EMPTY)){
-                        String string ="";
-                        for(int i=0;i<buttonNames.length;i++){
-                            buttonNames[i] = DEFAULT_BUTTON_NAME;// this will have to be seperate strings
-                        }
-                        loading=false;
-                        saveNames();
-                    }
-                    if(tmpMsg.equals("Ready")){
+                    if (tmpMsg.equals("Ready")) {
                         sendRecive.write(sendingString.getBytes());
                     }
-                    if(!loading){
-                        statusView.setText("Message Received");
+
+                    if (loading && !tmpMsg.equals(EMPTY)) {
+                        seperateNames(tmpMsg);
+                        addLabelToButtons();
+                        loading = false;
+                    } else if (loading && tmpMsg.equals(EMPTY)) {
+                        String string = "";
+                        for (int i = 0; i < buttonNames.length; i++) {
+                            buttonNames[i] = DEFAULT_BUTTON_NAME;// this will have to be seperate strings
+                        }
+                        addLabelToButtons();
+                        loading = false;
+                    }
+                    if (tmpMsg.equals(MOVE_LEFT)) {
+                        leftRotate();
+                        if (isAuto) {
+                            sendRecive.write(DISPENSE.getBytes());
+                            isAuto = false;
+                        }
+                    } else if (tmpMsg.equals(MOVE_RIGHT)) {
+                        rightRotate();//this is the problem
+                        if (counter > 0) {//to move right twice
+                            sendRecive.write(RIGHT.getBytes());
+                            counter--;
+                        } else if (counter <= 0 && isAuto) {
+                            sendRecive.write(DISPENSE.getBytes());
+                            isAuto = false;
+                        }
+                    } else if (tmpMsg.equals(MOVE_RIGHT2)) {
+                        rightRotate();
+                        rightRotate();
+                    }
+
+                    if(!loading && (tmpMsg.contains(DELIMITER) || tmpMsg.contains(EMPTY)) ){
+                        statusView.setText(STATUS + "Connected");
                         statusView.setTextColor(green);
+                        recievedView.setText("Initial State Loaded");
                         buttonVisibility(STATE_LISTENING);
                         busy=false;
                     }
-                    if(tmpMsg.equals(MOVE_LEFT)){
-                        leftRotate();
-                        if(isAuto){
-                            sendRecive.write(DISPENSE.getBytes());
-                            isAuto=false;
-                        }
-                    }
-                    else if(tmpMsg.equals(MOVE_RIGHT)){
-                        rightRotate();
-                        if(counter>0){//to move right twice
-                            sendRecive.write(RIGHT.getBytes());
-                            counter--;
-                        }
-                        else if(counter<=0 && isAuto){
-                            sendRecive.write(DISPENSE.getBytes());
-                            isAuto=false;
-                        }
-                    }
-                    else if(tmpMsg.equals(MOVE_RIGHT2)){
-                        rightRotate();
-                        rightRotate();
+                    else if(!loading && !tmpMsg.contains(DELIMITER)){
+                        statusView.setText(STATUS+"Message Received");
+                        statusView.setTextColor(green);
+                        buttonVisibility(STATE_LISTENING);
+                        busy=false;
                     }
                     
                     break;
@@ -649,7 +665,6 @@ public class MainActivity extends AppCompatActivity {
             buttonNames[(i+1)%4]=buttonNames[0];
             buttonNames[0]=tmp;
         }
-        saveNames();
         addLabelToButtons();
     }
     private void leftRotate(){
@@ -666,7 +681,6 @@ public class MainActivity extends AppCompatActivity {
             }
             buttonNames[3]=tmp;
         }
-        saveNames();
         addLabelToButtons();
     }
 
@@ -899,4 +913,13 @@ class SpiceNameIdx implements Comparable<SpiceNameIdx>{
     public int compareTo(SpiceNameIdx spiceNameIdx) {
         return Integer.compare(name.length(),spiceNameIdx.name.length());
     }
+}
+class SpiceIndexSaver{
+    String name;
+    int currIdx;
+    SpiceIndexSaver(String Name,int currIdxx){
+        name=Name;
+        currIdx= currIdxx;
+    }
+    SpiceIndexSaver(){}
 }
