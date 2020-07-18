@@ -371,6 +371,7 @@ public class MainActivity extends AppCompatActivity {
                         for (int i = 0; i < spiceIndexSaver.length; i++) {
                             spiceIndexSaver[i].name = DEFAULT_BUTTON_NAME;// this will have to be seperate strings
                             spiceIndexSaver[i].currIdx = i;
+                            spiceIndexSaver[i].startIdx = i;
                         }
                         addLabelToButtons();
                         loading = false;
@@ -522,11 +523,13 @@ public class MainActivity extends AppCompatActivity {
     private String createSaveString(){
         String send= "";
 //        The last one dont put the delimiter
-        for(int i = 0;i<spiceIndexSaver.length;i++){
-            if(i==(spiceIndexSaver.length-1))
-                send += spiceIndexSaver[i].name;
-            else
-                send = send + spiceIndexSaver[i].name+DELIMITER;
+        for(int i=0;i<spiceIndexSaver.length;i++){
+            if(i!=spiceIndexSaver.length-1){
+                send += spiceIndexSaver[i].name+DELIMITER;
+            }
+            else {
+                send = send + spiceIndexSaver[i].name;
+            }
         }
         return send;
     }
@@ -682,6 +685,15 @@ public class MainActivity extends AppCompatActivity {
         }
         addLabelToButtons();
     }
+    private SpiceIndexSaver findSpiceIdxFinderWithcurrentIdx(int indexToFind){
+        SpiceIndexSaver spiceIndexSavertoReturn= new SpiceIndexSaver();
+        for(int i=0;i<spiceIndexSaver.length;i++){
+            if(indexToFind==spiceIndexSaver[i].startIdx){
+                spiceIndexSavertoReturn =spiceIndexSaver[i];
+            }
+        }
+        return spiceIndexSavertoReturn;
+    }
 
     private void renameBtn(int currBtn){
         writeMsg.setVisibility(View.VISIBLE);
@@ -692,22 +704,22 @@ public class MainActivity extends AppCompatActivity {
         }
         if(currBtn == spiceDispense.getId()){
             spiceDispense.setText(string);
-            spiceIndexSaver[0].name=string;
+            findSpiceIdxFinderWithcurrentIdx(0).name=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice0.getId()){
             spice0.setText(string);
-            spiceIndexSaver[1].name=string;
+            findSpiceIdxFinderWithcurrentIdx(1).name=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice1.getId()){
             spice1.setText(string);
-            spiceIndexSaver[2].name=string;
+            findSpiceIdxFinderWithcurrentIdx(2).name=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice2.getId()){
             spice2.setText(string);
-            spiceIndexSaver[3].name=string;
+            findSpiceIdxFinderWithcurrentIdx(3).name=string;
             writeMsg.getText().clear();
         }
         saveNames();
@@ -880,17 +892,7 @@ public class MainActivity extends AppCompatActivity {
         //waiting till data is received
     }
     private void saveNames(){
-        String string = "";
-        for(int i=0;i<spiceIndexSaver.length;i++){
-            if(i!=spiceIndexSaver.length-1) {
-                string += spiceIndexSaver[i].name;
-                string += DELIMITER;
-            }
-            else{
-                string += spiceIndexSaver[i].name;
-            }
-        }
-        sendingString= string;
+        sendingString= createSaveString();
         sendRecive.write(SAVE.getBytes());
     }
     @Override
@@ -915,7 +917,7 @@ class SpiceNameIdx implements Comparable<SpiceNameIdx>{
 }
 class SpiceIndexSaver{
     String name;
-    int currIdx;
+    int currIdx,startIdx;
     SpiceIndexSaver(String Name,int currIdxx){
         name=Name;
         currIdx= currIdxx;
