@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static final int DefaultColors = -20000;
 
 
-    boolean loading = false, connected=false, saving =false;
+    boolean loading = false, connected=false, saving =false,show =false;
 
     Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn,reconnectBtn,eStopBtn,speechBtn,recipeBtn;
     Button[] buttonOrder;
@@ -423,6 +423,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         if (isAuto) {
                             sendRecive.write(DISPENSE.getBytes());
                             isAuto = false;
+
+                        }
+                        else{
+                            show=true;
                         }
                     } else if (tmpMsg.equals(MOVE_RIGHT)) {
                         rightRotate();//this is the problem
@@ -433,7 +437,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             sendRecive.write(DISPENSE.getBytes());
                             isAuto = false;
                         }
-                    } else if (tmpMsg.equals(MOVE_RIGHT2)) {
+                        else{
+                            show=true;
+                        }
+                    }
+                    else if (tmpMsg.equals(MOVE_RIGHT2)) {
                         rightRotate();
                         rightRotate();
                     }
@@ -448,10 +456,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     else if(!loading && !tmpMsg.contains(DELIMITER)){
                         statusView.setText(STATUS+"Message Received");
                         statusView.setTextColor(green);
-                        buttonVisibility(STATE_LISTENING);
+                        if(show)
+                            buttonVisibility(spiceDispense.getId());
                         busy=false;
                     }
-                    
+                    show=false;
+
                     break;
             }
             return true;
