@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String DEVICE_NAME ="ESP32",FILE_NAME="DispensedSpices.txt";
 
     private static final String STATUS = "Status: ",LEFT ="1",RIGHT="2",DISPENSE ="3",DISPENSE_DONE="Finished Dispensing",MOVE_LEFT="Moving Left",MOVE_RIGHT="Moving Right",STOPPED="Stopped",
-            MOVE_RIGHT2="Moving Right*2",DELIMITER="*",STOP="4";
+            MOVE_RIGHT2="Moving Right*2",DELIMITER="*",STOP="7",DEFAULT_BUTTON_NAME="Rename",SAVE="25",LOAD="26",EMPTY= "EPROM is empty",SAVED ="Saved";
     private static  BluetoothDevice btDevice;
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int green = Color.parseColor("#00ff00");
@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int DefaultColors = -20000;
 
 
+    boolean loading = false, connected=false, saving =false;
 
     Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn,reconnectBtn,eStopBtn,speechBtn,recipeBtn;
     Button[] buttonOrder;
@@ -73,9 +74,10 @@ public class MainActivity extends AppCompatActivity {
     Set<BluetoothDevice> deviceSet;
     TextView recievedView,statusView;
     EditText writeMsg;
-    String msgSend,Path;
+    String msgSend,sendingString,Path;
     String[] buttonNames = new String[4];
     public ArrayList<String> spiceQueue;
+    SpiceIndexSaver[] spiceIndexSaver;
     SendRecive sendRecive;
 
     static final int STATE_LISTENING =1;
@@ -126,6 +128,10 @@ public class MainActivity extends AppCompatActivity {
         disconnectFilter = new IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
         enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 
+        spiceIndexSaver = new SpiceIndexSaver[4];
+        for(int i=0;i<spiceIndexSaver.length;i++)
+            spiceIndexSaver[i]= new SpiceIndexSaver();
+
         requestCodeForEnable = 1;
 
         IntentFilter filter = new IntentFilter();
@@ -136,7 +142,6 @@ public class MainActivity extends AppCompatActivity {
 
         initBluetooth();
         DiscoverBT();
-        LoadNames();
         ClickListeners();
         // Register for broadcasts when a device is discovered.
         
@@ -148,12 +153,13 @@ public class MainActivity extends AppCompatActivity {
         send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(busy){
-                    showToast("Please wait for process to complete");
-                }else{
-                    String string = String.valueOf(writeMsg.getText());
-                    sendRecive.write(string.getBytes());
-                }
+                // if(busy){
+                //     showToast("Please wait for process to complete");
+                // }else{
+                //     String string = String.valueOf(writeMsg.getText());
+                //     sendRecive.write(string.getBytes());
+                // }
+                loadNames();
             }
         });
         recipeBtn.setOnClickListener(new View.OnClickListener() {
@@ -286,8 +292,17 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+    Runnable loadnamesDelay = new Runnable() {
+        @Override
+        public void run(){
+            loadNames();
+        }
+    };
 
-        Handler handler = new Handler(new Handler.Callback() {
+
+    Handler h = new Handler();
+
+    Handler handler = new Handler(new Handler.Callback() {
         @RequiresApi(api = Build.VERSION_CODES.O)
         @Override
         public boolean handleMessage(Message msg) {
@@ -310,6 +325,7 @@ public class MainActivity extends AppCompatActivity {
                     statusView.setText(STATUS + "Connected");
                     statusView.setTextColor(green);
                     buttonVisibility(STATE_LISTENING);
+                    h.postDelayed(loadnamesDelay,1000);
                     busy = false;
                     break;
                 case STATE_CONNECTION_FAILED:
@@ -322,7 +338,11 @@ public class MainActivity extends AppCompatActivity {
                 case STATE_MESSAGE_RECEIVED:
                     byte[] readBuff = (byte[]) msg.obj;
                     String tmpMsg = new String(readBuff,0,msg.arg1);
-                    recievedView.setText(tmpMsg);
+
+                    if(!tmpMsg.contains(DELIMITER) && !tmpMsg.equals(EMPTY)){
+                        recievedView.setText(tmpMsg);
+                    }
+//                    This is only done when there is confirmation that the spice has been dispensed
                     if(tmpMsg.equals(DISPENSE_DONE)){
                         numDispensed++;
                         int tableSpoons = numDispensed/3;
@@ -335,32 +355,61 @@ public class MainActivity extends AppCompatActivity {
                             processWords(spiceQueue.remove(0));
                         }
                     }
-                    else if(tmpMsg.equals(MOVE_LEFT)){
-                        leftRotate();
-                        if(isAuto){
-                            sendRecive.write(DISPENSE.getBytes());
-                            isAuto=false;
-                        }
+                    if(tmpMsg.equals(SAVED)){
+                        saving = false;
                     }
-                    else if(tmpMsg.equals(MOVE_RIGHT)){
-                        rightRotate();
-                        if(counter>0){//to move right twice
+                    if (tmpMsg.equals("Ready")) {
+                        sendRecive.write(sendingString.getBytes());
+                    }
+
+                    if (loading && !tmpMsg.equals(EMPTY)) {
+                        seperateNames(tmpMsg);
+                        addLabelToButtons();
+                        loading = false;
+                    } else if (loading && tmpMsg.equals(EMPTY)) {
+                        String string = "";
+                        for (int i = 0; i < spiceIndexSaver.length; i++) {
+                            spiceIndexSaver[i].name = DEFAULT_BUTTON_NAME;// this will have to be seperate strings
+                            spiceIndexSaver[i].currIdx = i;
+                            spiceIndexSaver[i].startIdx = i;
+                        }
+                        addLabelToButtons();
+                        loading = false;
+                    }
+                    if (tmpMsg.equals(MOVE_LEFT)) {
+                        leftRotate();
+                        if (isAuto) {
+                            sendRecive.write(DISPENSE.getBytes());
+                            isAuto = false;
+                        }
+                    } else if (tmpMsg.equals(MOVE_RIGHT)) {
+                        rightRotate();//this is the problem
+                        if (counter > 0) {//to move right twice
                             sendRecive.write(RIGHT.getBytes());
                             counter--;
-                        }
-                        else if(counter<=0 && isAuto){
+                        } else if (counter <= 0 && isAuto) {
                             sendRecive.write(DISPENSE.getBytes());
-                            isAuto=false;
+                            isAuto = false;
                         }
-                    }
-                    else if(tmpMsg.equals(MOVE_RIGHT2)){
+                    } else if (tmpMsg.equals(MOVE_RIGHT2)) {
                         rightRotate();
                         rightRotate();
                     }
-                    statusView.setText("Message Received");
-                    statusView.setTextColor(green);
-                    buttonVisibility(STATE_LISTENING);
-                    busy=false;
+
+                    if(!loading && (tmpMsg.contains(DELIMITER) || tmpMsg.contains(EMPTY)) ){
+                        statusView.setText(STATUS + "Connected");
+                        statusView.setTextColor(green);
+                        recievedView.setText("Initial State Loaded");
+                        buttonVisibility(STATE_LISTENING);
+                        busy=false;
+                    }
+                    else if(!loading && !tmpMsg.contains(DELIMITER)){
+                        statusView.setText(STATUS+"Message Received");
+                        statusView.setTextColor(green);
+                        buttonVisibility(STATE_LISTENING);
+                        busy=false;
+                    }
+                    
                     break;
             }
             return true;
@@ -385,6 +434,8 @@ public class MainActivity extends AppCompatActivity {
                 Message message = Message.obtain();
                 message.what = STATE_CONNECTED;
                 handler.sendMessage(message);
+
+                connected=true;
 
                 sendRecive = new SendRecive(socket);
                 sendRecive.start();
@@ -423,16 +474,12 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     bytes = inputStream.read(buffer);
                     handler.obtainMessage(STATE_MESSAGE_RECEIVED, bytes, -1, buffer).sendToTarget();
-                    if(selectedBtn.getId()==dispenseBtn.getId()){
-
-                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
         }
         public void write(byte[] bytes){
-            // If dispensing wait for a response
             toListenState();
             try {
                 outputStream.write(bytes);
@@ -441,7 +488,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
     private void showToast(String whatToPrint){
         Toast.makeText(getApplicationContext(),whatToPrint,Toast.LENGTH_SHORT).show();
     }
@@ -477,11 +523,13 @@ public class MainActivity extends AppCompatActivity {
     private String createSaveString(){
         String send= "";
 //        The last one dont put the delimiter
-        for(int i = 0;i<buttonNames.length;i++){
-            if(i==(buttonNames.length-1))
-                send += buttonNames[i];
-            else
-                send = send + buttonNames[i]+DELIMITER;
+        for(int i=0;i<spiceIndexSaver.length;i++){
+            if(i!=spiceIndexSaver.length-1){
+                send += spiceIndexSaver[i].name+DELIMITER;
+            }
+            else {
+                send = send + spiceIndexSaver[i].name;
+            }
         }
         return send;
     }
@@ -503,48 +551,54 @@ public class MainActivity extends AppCompatActivity {
             addLabelToButtons();
         }
         else{
-            String string = "Rename Spice";
-            for(int i=0;i<buttonNames.length;i++){
-                buttonNames[i]= string;
+            String string = "Rename";
+            for(int i=0;i<spiceIndexSaver.length;i++){
+                spiceIndexSaver[i].name= string;
             }
-            saveToPhone();
+            saveNames();
         }
         showToast("Correctly Loaded");
     }
     private void addLabelToButtons(){
-        for(int i = 0;i<buttonNames.length;i++){
-            switch(i){
-                case 0:
-                    spiceDispense.setText(buttonNames[i]);
-                    break;
-                case 1:
-                    spice0.setText(buttonNames[i]);
-                    break;
-                case 2:
-                    spice1.setText(buttonNames[i]);
-                    break;
-                case 3:
-                    spice2.setText(buttonNames[i]);
-                    break;
+        for(int i = 0;i<spiceIndexSaver.length;i++){//make sure that the index the spice should be in is set appropriately
+            if(spiceIndexSaver[i].currIdx==0){
+                buttonOrder[0].setText(findSpiceIdxFinderWithcurrentIdx(i).name);
+            }
+            else if(spiceIndexSaver[i].currIdx==1){
+                buttonOrder[1].setText(findSpiceIdxFinderWithcurrentIdx(i).name);
+            }
+            else if(spiceIndexSaver[i].currIdx==2){
+                buttonOrder[2].setText(findSpiceIdxFinderWithcurrentIdx(i).name);
+            }
+            else if(spiceIndexSaver[i].currIdx==3){
+                spice2.setText(findSpiceIdxFinderWithcurrentIdx(i).name);//when i use spice
             }
         }
+
 
     }
     private void seperateNames(String names){
         int idx=0,from=0;
         for(int i=0;i<names.length();i++){
             if(names.charAt(i)==DELIMITER.charAt(0)&&idx==0){
-                buttonNames[idx]=names.substring(from,i);
+                spiceIndexSaver[idx].name=names.substring(from,i);
+                spiceIndexSaver[idx].currIdx=idx;
+                spiceIndexSaver[idx].startIdx=idx;
                 idx++;
                 from = i;
             }
             else if(names.charAt(i)==DELIMITER.charAt(0)&&(idx==1||idx==2)){
-                buttonNames[idx]=names.substring(from+1,i);
+                spiceIndexSaver[idx].name=names.substring(from+1,i);
+                spiceIndexSaver[idx].currIdx=idx;
+                spiceIndexSaver[idx].startIdx=idx;
                 idx++;
                 from = i;
             }
             if(idx==3){
-                buttonNames[idx]=names.substring(from+1);
+                spiceIndexSaver[idx].name=names.substring(from+1).split(" ")[0];
+                spiceIndexSaver[idx].currIdx=idx;
+                spiceIndexSaver[idx].startIdx=idx;
+                break;
             }
         }
     }
@@ -613,33 +667,37 @@ public class MainActivity extends AppCompatActivity {
             sendRecive.write(RIGHT.getBytes());
         }
     }
-    private void rightRotate(){
+    private void rightRotate(){//logic is backwards
         numDispensed=0;
         String tmp = new String();
-        for(int i=0; i<buttonNames.length;i++){
-            tmp=buttonNames[(i+1)%4];
-            buttonNames[(i+1)%4]=buttonNames[0];
-            buttonNames[0]=tmp;
+        for(int i=0; i<spiceIndexSaver.length;i++){
+            spiceIndexSaver[i].currIdx=(spiceIndexSaver[i].currIdx+1)%4;
         }
-        saveToPhone();
         addLabelToButtons();
     }
     private void leftRotate(){
         numDispensed=0;
         String tmp = new String();
-        for(int i=buttonNames.length-1; i>0;i--){
-            if(i == 0) {
-                tmp=buttonNames[0];
-                buttonNames[0]=buttonNames[3];
+        for(int i=spiceIndexSaver.length-1; i>=0;i--){
+            if(spiceIndexSaver[i].currIdx == 0) {
+                spiceIndexSaver[i].currIdx=3;
             }
             else{
-                tmp=buttonNames[(i-1)];
-                buttonNames[(i-1)]=buttonNames[3];
+                spiceIndexSaver[i].currIdx=spiceIndexSaver[i].currIdx-1;
             }
-            buttonNames[3]=tmp;
         }
-        saveToPhone();
         addLabelToButtons();
+    }
+    private SpiceIndexSaver findSpiceIdxFinderWithcurrentIdx(int indexToFind){
+        SpiceIndexSaver spiceIndexSavertoReturn= new SpiceIndexSaver();
+        for(int i=0;i<spiceIndexSaver.length;i++){
+            if(indexToFind==spiceIndexSaver[i].startIdx){
+                spiceIndexSavertoReturn =spiceIndexSaver[i];
+            }
+        }
+        assert(spiceIndexSavertoReturn==null);
+        return spiceIndexSavertoReturn;
+
     }
 
     private void renameBtn(int currBtn){
@@ -651,27 +709,28 @@ public class MainActivity extends AppCompatActivity {
         }
         if(currBtn == spiceDispense.getId()){
             spiceDispense.setText(string);
-            buttonNames[0]=string;
+            findSpiceIdxFinderWithcurrentIdx(0).name=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice0.getId()){
             spice0.setText(string);
-            buttonNames[1]=string;
+            findSpiceIdxFinderWithcurrentIdx(1).name=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice1.getId()){
             spice1.setText(string);
-            buttonNames[2]=string;
+            findSpiceIdxFinderWithcurrentIdx(2).name=string;
             writeMsg.getText().clear();
         }
         else if(currBtn == spice2.getId()){
             spice2.setText(string);
-            buttonNames[3]=string;
+            findSpiceIdxFinderWithcurrentIdx(3).name=string;
             writeMsg.getText().clear();
         }
-        saveToPhone();
+        saveNames();
         buttonVisibility(STATE_LISTENING);
         changeColors(DefaultColors);
+        // saveToPhone();
     }
     private void changeColors(int currBut){
         if(currBut == spiceDispense.getId()){
@@ -762,6 +821,14 @@ public class MainActivity extends AppCompatActivity {
         }
         return ret;
     }
+    private SpiceIndexSaver getCurrentIndexOFSpiceIndexSaver(int idx){
+        for(int i=0;i<spiceIndexSaver.length;i++){
+            if(spiceIndexSaver[i].currIdx==idx){
+                return spiceIndexSaver[i];
+            }
+        }
+        return null;
+    }
     public void processWords(String words){
 
         String[] toGetIngredients = words.split("and");
@@ -776,14 +843,14 @@ public class MainActivity extends AppCompatActivity {
         words = words.toUpperCase();
         SpiceNameIdx[] spiceNameIdxes = new SpiceNameIdx[4];
         PriorityQueue<SpiceNameIdx> priorityQueue = new PriorityQueue<>();
-        for(int i=0; i<buttonNames.length;i++){
-            spiceNameIdxes[i]= new SpiceNameIdx(i,buttonNames[i]);
-            priorityQueue.add(new SpiceNameIdx(i,buttonNames[i]));
+        for(int i=0; i<spiceIndexSaver.length;i++){
+            spiceNameIdxes[i]= new SpiceNameIdx(i,getCurrentIndexOFSpiceIndexSaver(i).name);// this is adding the original sting name idx so it is not going to where the current thing is but where the
+            priorityQueue.add(new SpiceNameIdx(i,getCurrentIndexOFSpiceIndexSaver(i).name));
         }
         for(int i=spiceNameIdxes.length-1;!priorityQueue.isEmpty();i--)
             spiceNameIdxes[i]=priorityQueue.poll();
 
-        for(int i =0; i< buttonNames.length;i++){
+        for(int i =0; i< spiceIndexSaver.length;i++){
             if(words.contains(spiceNameIdxes[i].name.toUpperCase())){//if the text has a spice dispense it or go to it then dispense it
                 if(spiceNameIdxes[i].idx==0){
                     moreToDispense=num-1;
@@ -792,7 +859,19 @@ public class MainActivity extends AppCompatActivity {
                 else if(spiceNameIdxes[i].idx!=0){
                     isAuto= true;
                     moreToDispense=num-1;
-                    gotTo(buttonOrder[spiceNameIdxes[i].idx].getId());
+                    if(spiceNameIdxes[i].idx==0){// it is adding it here based on the wrong thing
+                        gotTo(spiceDispense.getId());
+                    }
+                    else if(spiceNameIdxes[i].idx==1){
+                        gotTo(spice0.getId());
+                    }
+                    else if(spiceNameIdxes[i].idx==2){
+                        gotTo(spice1.getId());
+                    }
+                    else if(spiceNameIdxes[i].idx==3){
+                        gotTo(spice2.getId());
+                    }
+//                    gotTo(buttonOrder[spiceNameIdxes[i].idx].getId());
                 }
                 break;
             }
@@ -817,7 +896,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
     private void initBluetooth(){
 
         if (bluetoothAdapter == null) {
@@ -832,6 +910,15 @@ public class MainActivity extends AppCompatActivity {
 
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
 //        registerReceiver(receiver, filter);
+    }
+    private void loadNames(){
+        loading=true;
+        sendRecive.write(LOAD.getBytes());
+        //waiting till data is received
+    }
+    private void saveNames(){
+        sendingString= createSaveString();
+        sendRecive.write(SAVE.getBytes());
     }
     @Override
     protected void onDestroy() {
@@ -852,4 +939,13 @@ class SpiceNameIdx implements Comparable<SpiceNameIdx>{
     public int compareTo(SpiceNameIdx spiceNameIdx) {
         return Integer.compare(name.length(),spiceNameIdx.name.length());
     }
+}
+class SpiceIndexSaver{
+    String name;
+    int currIdx,startIdx;
+    SpiceIndexSaver(String Name,int currIdxx){
+        name=Name;
+        currIdx= currIdxx;
+    }
+    SpiceIndexSaver(){}
 }
