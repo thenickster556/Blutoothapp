@@ -367,7 +367,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     statusView.setText(STATUS + "Connected");
                     statusView.setTextColor(green);
                     buttonVisibility(STATE_LISTENING);
-                    h.postDelayed(loadnamesDelay,1000);
+                    h.postDelayed(loadnamesDelay,300);
                     busy = false;
                     break;
                 case STATE_CONNECTION_FAILED:
