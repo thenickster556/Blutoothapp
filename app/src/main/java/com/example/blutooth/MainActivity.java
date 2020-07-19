@@ -698,6 +698,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             gotoBtn.setVisibility(View.VISIBLE);
             speechBtn.setVisibility(View.VISIBLE);
             writeMsg.setVisibility(View.GONE);
+            teaspoonOrTableSpoon.setVisibility(View.GONE);
+            numToDispense.setVisibility(View.GONE);
         }
     }
 
