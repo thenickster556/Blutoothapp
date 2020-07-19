@@ -19,40 +19,37 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.speech.RecognizerIntent;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.UUID;
 
+import static android.R.layout.simple_spinner_item;
 import static java.lang.Thread.sleep;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static final String DEVICE_NAME ="ESP32",FILE_NAME="DispensedSpices.txt";
 
     private static final String STATUS = "Status: ",LEFT ="1",RIGHT="2",DISPENSE ="3",DISPENSE_DONE="Finished Dispensing",MOVE_LEFT="Moving Left",MOVE_RIGHT="Moving Right",STOPPED="Stopped",
-            MOVE_RIGHT2="Moving Right*2",DELIMITER="*",STOP="7",DEFAULT_BUTTON_NAME="Rename",SAVE="25",LOAD="26",EMPTY= "EPROM is empty",SAVED ="Saved";
+            MOVE_RIGHT2="Moving Right*2",DELIMITER="*",STOP="7",DEFAULT_BUTTON_NAME="Rename",SAVE="25",LOAD="26",EMPTY= "EPROM is empty",SAVED ="Saved",TABLESPOON="tbsp",TEASPOON="tsp";
     private static  BluetoothDevice btDevice;
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int green = Color.parseColor("#00ff00");
@@ -73,8 +70,9 @@ public class MainActivity extends AppCompatActivity {
     IntentFilter intentFilter,disconnectFilter;
     Set<BluetoothDevice> deviceSet;
     TextView recievedView,statusView;
-    EditText writeMsg;
-    String msgSend,sendingString,Path;
+    EditText writeMsg,numToDispense;
+    Spinner teaspoonOrTableSpoon;
+    String msgSend,sendingString,Path,tspOrTbsp=TEASPOON;
     String[] buttonNames = new String[4];
     public ArrayList<String> spiceQueue;
     SpiceIndexSaver[] spiceIndexSaver;
@@ -119,6 +117,11 @@ public class MainActivity extends AppCompatActivity {
 
         writeMsg = (EditText) findViewById(R.id.editTextMsg);
         writeMsg.setVisibility(View.GONE);
+        numToDispense = (EditText) findViewById(R.id.dispenseMore);
+        numToDispense.setVisibility(View.GONE);
+
+        teaspoonOrTableSpoon = (Spinner) findViewById(R.id.teaspoonOrTablespoon);
+        teaspoonOrTableSpoon.setVisibility(View.GONE);
 
         recievedView = (TextView) findViewById(R.id.textViewMsg);
         statusView = (TextView) findViewById(R.id.statusView);
@@ -142,6 +145,7 @@ public class MainActivity extends AppCompatActivity {
 
         initBluetooth();
         DiscoverBT();
+        setUpTeaspoonTableSpoon();
         ClickListeners();
         // Register for broadcasts when a device is discovered.
         
@@ -234,6 +238,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 selectedBtn = dispenseBtn; //I have no check in some of my functions if this happens, this could be a problem
+                int num=1;
+                try {
+                    num=Integer.parseInt(numToDispense.getText().toString());
+                }catch (NumberFormatException nfe){}
+                numToDispense.getText().clear();
+                if(tspOrTbsp.equals(TABLESPOON))
+                    num=num*3;
+                moreToDispense = num-1;
                 sendRecive.write(DISPENSE.getBytes());
             }
         });
@@ -263,8 +275,38 @@ public class MainActivity extends AppCompatActivity {
                 DiscoverBT();
             }
         });
+        teaspoonOrTableSpoon.setOnItemSelectedListener(this);
         changeColors(DefaultColors);
     }
+    private void setUpTeaspoonTableSpoon(){
+        // Spinner Drop down elements
+        List<String> categories = new ArrayList<String>();
+        categories.add(TEASPOON);
+        categories.add(TABLESPOON);
+
+        // Creating adapter for spinner
+        ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(this, simple_spinner_item, categories);
+
+        // Drop down layout style - list view with radio button
+        dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        // attaching data adapter to spinner
+        teaspoonOrTableSpoon.setAdapter(dataAdapter);
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        // On selecting a spinner item
+        tspOrTbsp = parent.getItemAtPosition(position).toString();
+
+        // Showing selected spinner item
+//        Toast.makeText(parent.getContext(), "Selected: " + item, Toast.LENGTH_LONG).show();
+    }
+    public void onNothingSelected(AdapterView<?> arg0) {
+        showToast("Please choose teaspoon or tablespoon");
+        // TODO Auto-generated method stub
+    }
+
     //The BroadcastReceiver that listens for bluetooth broadcasts
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -614,6 +656,8 @@ public class MainActivity extends AppCompatActivity {
             speechBtn.setVisibility(View.VISIBLE);
             writeMsg.setVisibility(View.GONE);
             gotoBtn.setVisibility(View.GONE);
+            teaspoonOrTableSpoon.setVisibility(View.VISIBLE);
+            numToDispense.setVisibility(View.VISIBLE);
         }
         else if(btn ==STATE_LISTENING){
             dispenseBtn.setVisibility(View.GONE);
@@ -623,7 +667,8 @@ public class MainActivity extends AppCompatActivity {
             reconnectBtn.setVisibility(View.GONE);
             writeMsg.setVisibility(View.GONE);
             recipeBtn.setVisibility(View.GONE);
-
+            teaspoonOrTableSpoon.setVisibility(View.GONE);
+            numToDispense.setVisibility(View.GONE);
         }
         else if(btn== STANDARD_CONNECTION){
             dispenseBtn.setVisibility(View.GONE);
@@ -633,6 +678,8 @@ public class MainActivity extends AppCompatActivity {
             reconnectBtn.setVisibility(View.GONE);
             writeMsg.setVisibility(View.GONE);
             recipeBtn.setVisibility(View.VISIBLE);
+            teaspoonOrTableSpoon.setVisibility(View.GONE);
+            numToDispense.setVisibility(View.GONE);
         }
         else if(btn == reconnectBtn.getId()){
             dispenseBtn.setVisibility(View.GONE);
