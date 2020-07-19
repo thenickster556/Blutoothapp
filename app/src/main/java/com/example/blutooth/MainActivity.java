@@ -562,16 +562,16 @@ public class MainActivity extends AppCompatActivity {
     private void addLabelToButtons(){
         for(int i = 0;i<spiceIndexSaver.length;i++){//make sure that the index the spice should be in is set appropriately
             if(spiceIndexSaver[i].currIdx==0){
-                buttonOrder[0].setText(spiceIndexSaver[i].name);
+                buttonOrder[0].setText(findSpiceIdxFinderWithcurrentIdx(i).name);
             }
             else if(spiceIndexSaver[i].currIdx==1){
-                buttonOrder[1].setText(spiceIndexSaver[i].name);
+                buttonOrder[1].setText(findSpiceIdxFinderWithcurrentIdx(i).name);
             }
             else if(spiceIndexSaver[i].currIdx==2){
-                buttonOrder[2].setText(spiceIndexSaver[i].name);
+                buttonOrder[2].setText(findSpiceIdxFinderWithcurrentIdx(i).name);
             }
             else if(spiceIndexSaver[i].currIdx==3){
-                spice2.setText(spiceIndexSaver[i].name);//when i use spice
+                spice2.setText(findSpiceIdxFinderWithcurrentIdx(i).name);//when i use spice
             }
         }
 
@@ -679,11 +679,11 @@ public class MainActivity extends AppCompatActivity {
         numDispensed=0;
         String tmp = new String();
         for(int i=spiceIndexSaver.length-1; i>=0;i--){
-            if(i == 0) {
+            if(spiceIndexSaver[i].currIdx == 0) {
                 spiceIndexSaver[i].currIdx=3;
             }
             else{
-                spiceIndexSaver[i].currIdx-=1;
+                spiceIndexSaver[i].currIdx=spiceIndexSaver[i].currIdx-1;
             }
         }
         addLabelToButtons();
@@ -821,12 +821,20 @@ public class MainActivity extends AppCompatActivity {
         }
         return ret;
     }
+    private SpiceIndexSaver getCurrentIndexOFSpiceIndexSaver(int idx){
+        for(int i=0;i<spiceIndexSaver.length;i++){
+            if(spiceIndexSaver[i].currIdx==idx){
+                return spiceIndexSaver[i];
+            }
+        }
+        return null;
+    }
     public void processWords(String words){
 
-        String[] toGetIngredients = words.split("and");
-        for(int i =1; i<toGetIngredients.length;i++)// adding the rest of ingredients to the spice queue
-            spiceQueue.add(toGetIngredients[i]);
-        words = toGetIngredients[0];
+//        String[] toGetIngredients = words.split("and");
+//        for(int i =1; i<toGetIngredients.length;i++)// adding the rest of ingredients to the spice queue
+//            spiceQueue.add(toGetIngredients[i]);
+//        words = toGetIngredients[0];
         int num = getNumber(words);
 
         if(words.contains("tablespoons")||words.contains("tbsps")||words.contains("tablespoon")||words.contains("tbsp")){// do conversion for teaspoon to tablespoon
@@ -836,14 +844,14 @@ public class MainActivity extends AppCompatActivity {
         SpiceNameIdx[] spiceNameIdxes = new SpiceNameIdx[4];
         PriorityQueue<SpiceNameIdx> priorityQueue = new PriorityQueue<>();
         for(int i=0; i<spiceIndexSaver.length;i++){
-            spiceNameIdxes[i]= new SpiceNameIdx(i,spiceIndexSaver[i].name);
-            priorityQueue.add(new SpiceNameIdx(i,spiceIndexSaver[i].name));
+            spiceNameIdxes[i]= new SpiceNameIdx(i,getCurrentIndexOFSpiceIndexSaver(i).name);// this is adding the original sting name idx so it is not going to where the current thing is but where the
+            priorityQueue.add(new SpiceNameIdx(i,getCurrentIndexOFSpiceIndexSaver(i).name));
         }
         for(int i=spiceNameIdxes.length-1;!priorityQueue.isEmpty();i--)
             spiceNameIdxes[i]=priorityQueue.poll();
 
         for(int i =0; i< spiceIndexSaver.length;i++){
-            if(words.contains(spiceNameIdxes[i].name.toUpperCase())){//if the text has a spice dispense it or go to it then dispense it
+            if(words.indexOf(spiceNameIdxes[i].name.toUpperCase())!=-1){//if the text has a spice dispense it or go to it then dispense it
                 if(spiceNameIdxes[i].idx==0){
                     moreToDispense=num-1;
                     sendRecive.write(DISPENSE.getBytes());
@@ -851,7 +859,19 @@ public class MainActivity extends AppCompatActivity {
                 else if(spiceNameIdxes[i].idx!=0){
                     isAuto= true;
                     moreToDispense=num-1;
-                    gotTo(buttonOrder[spiceNameIdxes[i].idx].getId());
+                    if(spiceNameIdxes[i].idx==0){// it is adding it here based on the wrong thing
+                        gotTo(spiceDispense.getId());
+                    }
+                    else if(spiceNameIdxes[i].idx==1){
+                        gotTo(spice0.getId());
+                    }
+                    else if(spiceNameIdxes[i].idx==2){
+                        gotTo(spice1.getId());
+                    }
+                    else if(spiceNameIdxes[i].idx==3){
+                        gotTo(spice2.getId());
+                    }
+//                    gotTo(buttonOrder[spiceNameIdxes[i].idx].getId());
                 }
                 break;
             }
