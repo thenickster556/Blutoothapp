@@ -595,7 +595,7 @@ public class MainActivity extends AppCompatActivity {
                 from = i;
             }
             if(idx==3){
-                spiceIndexSaver[idx].name=names.substring(from+1);
+                spiceIndexSaver[idx].name=names.substring(from+1).split(" ")[0];
                 spiceIndexSaver[idx].currIdx=idx;
                 spiceIndexSaver[idx].startIdx=idx;
                 break;
@@ -831,10 +831,10 @@ public class MainActivity extends AppCompatActivity {
     }
     public void processWords(String words){
 
-//        String[] toGetIngredients = words.split("and");
-//        for(int i =1; i<toGetIngredients.length;i++)// adding the rest of ingredients to the spice queue
-//            spiceQueue.add(toGetIngredients[i]);
-//        words = toGetIngredients[0];
+        String[] toGetIngredients = words.split("and");
+        for(int i =1; i<toGetIngredients.length;i++)// adding the rest of ingredients to the spice queue
+            spiceQueue.add(toGetIngredients[i]);
+        words = toGetIngredients[0];
         int num = getNumber(words);
 
         if(words.contains("tablespoons")||words.contains("tbsps")||words.contains("tablespoon")||words.contains("tbsp")){// do conversion for teaspoon to tablespoon
@@ -851,7 +851,7 @@ public class MainActivity extends AppCompatActivity {
             spiceNameIdxes[i]=priorityQueue.poll();
 
         for(int i =0; i< spiceIndexSaver.length;i++){
-            if(words.indexOf(spiceNameIdxes[i].name.toUpperCase())!=-1){//if the text has a spice dispense it or go to it then dispense it
+            if(words.contains(spiceNameIdxes[i].name.toUpperCase())){//if the text has a spice dispense it or go to it then dispense it
                 if(spiceNameIdxes[i].idx==0){
                     moreToDispense=num-1;
                     sendRecive.write(DISPENSE.getBytes());
