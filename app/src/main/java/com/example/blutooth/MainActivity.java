@@ -56,6 +56,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static final int red = Color.parseColor("#EF1F1F");
     private static final int blue = Color.parseColor("#1F4FEF");
     private static final int DefaultColors = -20000;
+    public static boolean loaded = true;
 
 
     boolean loading = false, connected=false, saving =false,show =false;
