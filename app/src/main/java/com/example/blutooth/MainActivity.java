@@ -56,10 +56,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static final int red = Color.parseColor("#EF1F1F");
     private static final int blue = Color.parseColor("#1F4FEF");
     private static final int DefaultColors = -20000;
+    public static boolean loaded = true;
 
 
     boolean loading = false, connected=false, saving =false,show =false;
-
     Button send,spiceDispense,spice0,spice1,spice2,dispenseBtn,gotoBtn,renameBtn,reconnectBtn,eStopBtn,speechBtn,recipeBtn;
     Button[] buttonOrder;
     Button selectedBtn= null;
@@ -142,6 +142,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         this.registerReceiver(mReceiver, filter);
+
+        if(loaded == true){
+            Intent i = new Intent(MainActivity.this,
+                    StarterPage.class);
+            startActivity(i);
+            loaded =false;
+        }
 
         initBluetooth();
         DiscoverBT();
@@ -446,7 +453,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         rightRotate();
                     }
 
-                    if(!loading && (tmpMsg.contains(DELIMITER) || tmpMsg.contains(EMPTY)) ){
+                    if(!loading && (tmpMsg.contains(DELIMITER) || tmpMsg.contains(EMPTY)) ){// make a intial look
                         statusView.setText(STATUS + "Connected");
                         statusView.setTextColor(green);
                         recievedView.setText("Initial State Loaded");
@@ -555,23 +562,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             showToast("Google mic isn't open");
         }
     }
-    private void saveToPhone(){
-        String Data=createSaveString(); //define data
-        File file = new File(Path);
-        if (!file.exists()) {
-            file.mkdir();
-        }
-        try {
-            File gpxfile = new File(Path);
-            FileWriter writer = new FileWriter(gpxfile);
-            writer.append(Data);
-            writer.flush();
-            writer.close();
-        } catch (Exception e) { }
-        showToast("Saved");
-
-
-    }
     private String createSaveString(){
         String send= "";
 //        The last one dont put the delimiter
@@ -584,32 +574,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
         return send;
-    }
-    private void LoadNames(){
-
-        File file = new File(Path);
-        if(file.exists()){
-            StringBuilder text = new StringBuilder();
-            try {
-                BufferedReader br = new BufferedReader(new FileReader(file));
-                String line;
-                while ((line = br.readLine())!= null) {
-                    text.append(line);
-//                    text.append('\n');
-                }
-                br.close();
-            } catch (IOException e) { }
-            seperateNames(text.toString());
-            addLabelToButtons();
-        }
-        else{
-            String string = "Rename";
-            for(int i=0;i<spiceIndexSaver.length;i++){
-                spiceIndexSaver[i].name= string;
-            }
-            saveNames();
-        }
-        showToast("Correctly Loaded");
     }
     private void addLabelToButtons(){
         for(int i = 0;i<spiceIndexSaver.length;i++){//make sure that the index the spice should be in is set appropriately

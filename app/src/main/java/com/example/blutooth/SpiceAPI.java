@@ -37,6 +37,7 @@ public class SpiceAPI extends AppCompatActivity {
     private int from = 0, to = 19;
     private String nakedUrl = "https://api.edamam.com/search?q=" + q + "&app_id=3e6d9a08&app_key=b6723e25aa0fde680a04c6c7cf456de2&from=" + from + "&to=" + to;
 
+
     Button send,back;
     ConstraintLayout layout;
     TextView httpResponse;  //For testing purposes only
