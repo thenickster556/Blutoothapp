@@ -872,9 +872,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
         for(int i=spiceNameIdxes.length-1;!priorityQueue.isEmpty();i--)
             spiceNameIdxes[i]=priorityQueue.poll();
-
         for(int i =0; i< spiceIndexSaver.length;i++){
-            if(words.contains(spiceNameIdxes[i].name.toUpperCase())){//if the text has a spice dispense it or go to it then dispense it
+            if(spiceNameIdxes[i].name.endsWith(" ")){// getting rid of a run on space
+                spiceNameIdxes[i].name=spiceNameIdxes[i].name.substring(0,spiceNameIdxes[i].name.lastIndexOf(" "));
+            }
+            if(words.contains(spiceNameIdxes[i].name.split(" ")[0].toUpperCase())){//if the text has a spice dispense it or go to it then dispense it
                 if(spiceNameIdxes[i].idx==0){
                     moreToDispense=num-1;
                     sendRecive.write(DISPENSE.getBytes());

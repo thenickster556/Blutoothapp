@@ -16,7 +16,7 @@ public class StarterPage extends AppCompatActivity {
             public void run() {
                 try {
                     super.run();
-                    sleep(3000);  //Delay of 3 seconds
+                    sleep(6000);  //Delay of 6 seconds
                 } catch (Exception e) {
 
                 } finally {
