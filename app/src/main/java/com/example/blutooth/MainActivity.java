@@ -564,14 +564,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
     private String createSaveString(){
         String send= "";
-//        The last one dont put the delimiter
+//        put delimiter at the end to avoid garbage value
         for(int i=0;i<spiceIndexSaver.length;i++){
-            if(i!=spiceIndexSaver.length-1){
-                send += spiceIndexSaver[i].name+DELIMITER;
-            }
-            else {
-                send = send + spiceIndexSaver[i].name;
-            }
+            send += spiceIndexSaver[i].name+DELIMITER;
+//
         }
         return send;
     }
@@ -603,18 +599,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 idx++;
                 from = i;
             }
-            else if(names.charAt(i)==DELIMITER.charAt(0)&&(idx==1||idx==2)){
+            else if(names.charAt(i)==DELIMITER.charAt(0)&&(idx==1||idx==2||idx==3)){
                 spiceIndexSaver[idx].name=names.substring(from+1,i);
                 spiceIndexSaver[idx].currIdx=idx;
                 spiceIndexSaver[idx].startIdx=idx;
                 idx++;
                 from = i;
-            }
-            if(idx==3){
-                spiceIndexSaver[idx].name=names.substring(from+1).split(" ")[0];
-                spiceIndexSaver[idx].currIdx=idx;
-                spiceIndexSaver[idx].startIdx=idx;
-                break;
             }
         }
     }
@@ -663,6 +653,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             writeMsg.setVisibility(View.GONE);
             writeMsg.setVisibility(View.GONE);
             recipeBtn.setVisibility(View.GONE);
+            teaspoonOrTableSpoon.setVisibility(View.GONE);
+            numToDispense.setVisibility(View.GONE);
             reconnectBtn.setVisibility(View.VISIBLE);
         }
         else{
@@ -873,10 +865,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         for(int i=spiceNameIdxes.length-1;!priorityQueue.isEmpty();i--)
             spiceNameIdxes[i]=priorityQueue.poll();
         for(int i =0; i< spiceIndexSaver.length;i++){
-            if(spiceNameIdxes[i].name.endsWith(" ")){// getting rid of a run on space
+            while(spiceNameIdxes[i].name.endsWith(" ")){// getting rid of a run on space
                 spiceNameIdxes[i].name=spiceNameIdxes[i].name.substring(0,spiceNameIdxes[i].name.lastIndexOf(" "));
             }
-            if(words.contains(spiceNameIdxes[i].name.split(" ")[0].toUpperCase())){//if the text has a spice dispense it or go to it then dispense it
+            if(words.contains(spiceNameIdxes[i].name.toUpperCase())){//if the text has a spice dispense it or go to it then dispense it
                 if(spiceNameIdxes[i].idx==0){
                     moreToDispense=num-1;
                     sendRecive.write(DISPENSE.getBytes());
